@@ -240,7 +240,11 @@ td.r{white-space:nowrap}
   <!-- Lieferkette -->
   <section id="tab-kette" class="tab" hidden>
     <div class="panel">
-      <h2>Vom Wald bis zur Endanwender*in</h2>
+      <h2>Vom Wald bis zum Endkunden</h2>
+      <div id="simple"></div>
+    </div>
+    <div class="panel">
+      <h2>Die Lieferkette als Bild</h2>
       <div class="pano"><div id="pano"></div></div>
       <p class="hint pano-hint">Die Grafik lässt sich seitlich wischen.</p>
     </div>
@@ -248,7 +252,7 @@ td.r{white-space:nowrap}
       <h2>Lieferkette – Stufen und Annahmen</h2>
       <div class="fields">
         <label class="f">Weiterverarbeitung und Produkt<select id="scmVar"></select></label>
-        <label class="f">Bedarf bei Endanwender*in (m³ fertiges Holz)<input type="number" id="scmMenge" min="0.01" step="0.01"></label>
+        <label class="f">Bedarf beim Endkunden (m³ fertiges Holz)<input type="number" id="scmMenge" min="0.01" step="0.01"></label>
         <label class="f">Rechnen<select id="kMode"><option value="rueck">rückwärts vom Liefertermin</option><option value="vor">vorwärts ab Start im Wald</option></select></label>
         <label class="f"><span id="kDateLabel">Liefertermin</span><input type="date" id="kDate"></label>
       </div>
@@ -521,7 +525,7 @@ function scmDefault(v){
     { name: 'Sägewerk', sub: 'Einschnitt zu Schnittholz', tage: 5, ausbeute: 55, trans: 1, icon: 'saege', kost: 35, ktrans: 6 },
     { name: 'Holztrocknung', sub: 'Trockenkammer', tage: 9, ausbeute: 95, trans: 2, icon: 'trock', kost: 30, ktrans: 12 },
     { name: 'Weiterverarbeitung', sub: x[1], tage: x[2], ausbeute: x[3], trans: x[4], icon: 'prod', kost: x[7], ktrans: x[8] },
-    { name: 'Endanwender*in', sub: x[5], tage: x[6], ausbeute: 100, trans: 0, icon: 'haus', kost: x[9], ktrans: 0 }
+    { name: 'Endkunde', sub: x[5], tage: x[6], ausbeute: 100, trans: 0, icon: 'haus', kost: x[9], ktrans: 0 }
   ] };
 }
 const now = today0();
@@ -536,7 +540,7 @@ function load(){
 }
 function save(){ try { localStorage.setItem(KEY, JSON.stringify(state)); } catch(e){} }
 state = load();
-if (state.scm && state.scm.st[4] && state.scm.st[4].name === 'Kunde') state.scm.st[4].name = 'Endanwender*in';
+if (state.scm && state.scm.st[4] && /^(Kunde|Endanwender\*in)$/.test(state.scm.st[4].name)) state.scm.st[4].name = 'Endkunde';
 if (!state.scm || state.scm.st[0].kost === undefined) state.scm = scmDefault(state.scm && SCM_VAR[state.scm.variante] ? state.scm.variante : 'holzbau');
 
 const $ = id => document.getElementById(id);
@@ -770,6 +774,7 @@ $('exArt').onchange = () => { selId = +$('exArt').value; render(); };
 
 /* ----- Lieferkette ----- */
 const ICON = {
+  moebel: '<rect x="3" y="18" width="28" height="5" rx="1.5" fill="currentColor"/><path d="M7 23v19M27 23v19" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><path d="M38 8v34M38 27h8v15" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity=".6"/>',
   wald: '<path d="M14 6l9 16h-5l7 12H3l7-12H5z" fill="currentColor"/><rect x="12" y="34" width="4" height="8" fill="currentColor"/><path d="M34 14l7 12h-4l6 10H25l6-10h-4z" fill="currentColor" opacity=".6"/><rect x="32" y="36" width="4" height="6" fill="currentColor" opacity=".6"/>',
   ernte: '<rect x="4" y="22" width="20" height="12" rx="2" fill="currentColor"/><rect x="8" y="14" width="10" height="9" rx="1.5" fill="currentColor" opacity=".6"/><circle cx="9" cy="37" r="5" fill="currentColor"/><circle cx="21" cy="37" r="5" fill="currentColor"/><path d="M20 22l10-12 8 6" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/><rect x="35" y="14" width="5" height="8" rx="1" fill="currentColor"/><path d="M44 8L33 42" stroke="currentColor" stroke-width="4" stroke-linecap="round" opacity=".6"/>',
   lkw: '<rect x="2" y="26" width="30" height="4" fill="currentColor"/><rect x="33" y="18" width="12" height="14" rx="2" fill="currentColor"/><rect x="37" y="21" width="6" height="5" fill="var(--field)"/><circle cx="10" cy="36" r="4.5" fill="currentColor"/><circle cx="24" cy="36" r="4.5" fill="currentColor"/><circle cx="39" cy="36" r="4.5" fill="currentColor"/><g fill="currentColor" opacity=".6"><circle cx="8" cy="21" r="4"/><circle cx="17" cy="21" r="4"/><circle cx="26" cy="21" r="4"/><circle cx="12.5" cy="13.5" r="4"/><circle cx="21.5" cy="13.5" r="4"/></g>',
@@ -820,6 +825,45 @@ const TRUCK = (x, y, load) => `<rect x="${x}" y="${y-12}" width="34" height="3" 
 const PERSON = (x, y, shirt, hair, long) => `<path d="M${x-3} ${y}v-12M${x+3} ${y}v-12" stroke="#33383f" stroke-width="3.4" stroke-linecap="round"/>
   <rect x="${x-6}" y="${y-27}" width="12" height="17" rx="4" fill="${shirt}"/><path d="M${x+5} ${y-24}l7-8" stroke="${shirt}" stroke-width="3.4" stroke-linecap="round"/><circle cx="${x+12.5}" cy="${y-33}" r="2" fill="#f2c9a0"/>
   <circle cx="${x}" cy="${y-33}" r="5.5" fill="#f2c9a0"/><path d="M${x-5.5} ${y-33}a5.5 5.5 0 0 1 11 0${long ? `v7h-2.2v-6h-6.6v6h-2.2z` : 'z'}" fill="${hair}"/>`;
+
+/* Einfache Grafik: Wald → Sägewerk → Holztrocknung → Weiterverarbeitung → Endkunde (Haus oder Möbel) */
+function simpleFlow(variante){
+  const main = [['Wald', 'Holzernte', 'wald'], ['Sägewerk', 'Einschnitt', 'saege'], ['Holztrocknung', 'Trockenkammer', 'trock'], ['Weiterverarbeitung', 'Holzindustrie · Tischlerei · Holzbau', 'prod']];
+  const ends = [['Haus', 'haus', variante === 'holzbau'], ['Möbel', 'moebel', variante === 'tischlerei']];
+  const node = (cx, cy, r, icon, on, dim) => `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${on ? 'var(--good-bg)' : 'var(--field)'}" stroke="var(--${dim ? 'line' : 'accent'})" stroke-width="${on ? 4 : 2.5}"/>
+    <g transform="translate(${cx - r*0.62} ${cy - r*0.62}) scale(${r*1.24/48})" style="color:var(--accent)" ${dim ? 'opacity=".55"' : ''}>${ICON[icon]}</g>`;
+  const arrow = d => `<path d="${d}" fill="none" stroke="var(--muted)" stroke-width="3" stroke-linecap="round" marker-end="url(#sah)"/>`;
+  const defs = '<defs><marker id="sah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs>';
+  const anyOn = ends.some(e => e[2]);
+  let g = defs, W, H;
+  if (!M){
+    W = 1000; H = 262; const xs = [90, 290, 490, 690], y = 138, r = 52;
+    main.forEach((m, i) => {
+      g += node(xs[i], y, r, m[2]) + `<text x="${xs[i]}" y="${y+r+22}" text-anchor="middle" font-size="16" font-weight="700" fill="var(--ink)">${i+1}. ${m[0]}</text><text x="${xs[i]}" y="${y+r+40}" text-anchor="middle">${m[1]}</text>`;
+      if (i < 3) g += arrow(`M${xs[i]+r+10} ${y}H${xs[i+1]-r-14}`);
+    });
+    g += `<text x="870" y="20" text-anchor="middle" font-size="16" font-weight="700" fill="var(--ink)">5. Endkunde</text>`;
+    ends.forEach((e, k) => {
+      const cy = k ? 204 : 82;
+      g += arrow(`M${690+r+10} ${y}C790 ${y} 770 ${cy} ${858-44-14} ${cy}`) + node(858, cy, 44, e[1], e[2], anyOn && !e[2]) +
+        `<text x="914" y="${cy+6}" font-size="16" font-weight="${e[2] ? 700 : 500}" fill="var(--ink)">${e[0]}</text>`;
+    });
+    g += `<text x="858" y="148" text-anchor="middle" font-size="13">oder</text>`;
+  } else {
+    W = 360; H = 616; const ys = [48, 160, 272, 384], x = 62, r = 40;
+    main.forEach((m, i) => {
+      g += node(x, ys[i], r, m[2]) + `<text x="${x+r+16}" y="${ys[i]-2}" font-size="17" font-weight="700" fill="var(--ink)">${i+1}. ${m[0]}</text><text x="${x+r+16}" y="${ys[i]+17}" font-size="12.5">${m[1]}</text>`;
+      if (i < 3) g += arrow(`M${x} ${ys[i]+r+8}V${ys[i+1]-r-12}`);
+    });
+    ends.forEach((e, k) => {
+      const cx = k ? 286 : 74;
+      g += arrow(`M${x} ${384+r+8}C${x} 470 ${cx} 450 ${cx} ${540-40-14}`) + node(cx, 540, 40, e[1], e[2], anyOn && !e[2]) +
+        `<text x="${cx}" y="604" text-anchor="middle" font-size="16" font-weight="${e[2] ? 700 : 500}" fill="var(--ink)">${e[0]}</text>`;
+    });
+    g += `<text x="180" y="536" text-anchor="middle" font-size="15" font-weight="700" fill="var(--ink)">5. Endkunde</text><text x="180" y="554" text-anchor="middle" font-size="12.5">Haus oder Möbel</text>`;
+  }
+  return `<svg viewBox="0 0 ${W} ${H}" style="display:block;width:100%;height:auto;max-width:${M ? 380 : 1000}px;margin:0 auto" role="img" aria-label="Wald, Sägewerk, Holztrocknung, Weiterverarbeitung, Endkunde mit Haus oder Möbel" font-size="12.5" fill="var(--muted)" font-family="inherit">${g}</svg>`;
+}
 function panorama(K, out, cumA, eur, nq, unit){
   const G = 200, R = 236, sc = (part, x, k) => `<g transform="translate(${x} ${G - 78*k}) scale(${k})">${part}</g>`;
   const xs = [90, 295, 500, 705, 910];
@@ -831,7 +875,7 @@ function panorama(K, out, cumA, eur, nq, unit){
       <text x="${xs[i]}" y="300" text-anchor="middle" fill="var(--muted)">bisher ${eur(cumA[i])}</text>`;
     if (i < K.length - 1) lab += `<path d="M${xs[i]+78} 280H${xs[i+1]-82}" stroke="var(--muted)" stroke-width="2" marker-end="url(#pah)"/><text x="${(xs[i]+xs[i+1])/2}" y="274" text-anchor="middle" font-size="10.5" fill="var(--muted)">${k.trans} T.</text>`;
   });
-  return `<svg viewBox="0 0 1000 312" style="display:block;width:100%;height:auto" role="img" aria-label="Grafik der Lieferkette: Wald, Sägewerk, Holztrocknung, Weiterverarbeitung, Endanwender*in" font-size="11.5" font-family="inherit">
+  return `<svg viewBox="0 0 1000 312" style="display:block;width:100%;height:auto" role="img" aria-label="Grafik der Lieferkette: Wald, Sägewerk, Holztrocknung, Weiterverarbeitung, Endkunde" font-size="11.5" font-family="inherit">
     <defs><marker id="pah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker>
     <clipPath id="pcl"><rect width="1000" height="244" rx="10"/></clipPath></defs>
     <g clip-path="url(#pcl)">
@@ -870,12 +914,13 @@ function renderKette(){
   });
   const ctot = cum, cTrans = ct.reduce((a,b) => a + b, 0);
   const unit = i => i === 0 ? 'fm' : 'm³';
+  $('simple').innerHTML = simpleFlow(S.variante);
   $('pano').innerHTML = panorama(K, out, cumA, eur, nq, unit);
   const base = parseDate(S.date), start = S.mode === 'vor' ? base : addDays(base, -total), ende = addDays(start, total);
 
   $('scmVar').innerHTML = Object.keys(SCM_VAR).map(k => `<option value="${k}">${SCM_VAR[k][0]}</option>`).join('');
   $('scmVar').value = S.variante; $('scmMenge').value = S.menge; $('kMode').value = S.mode; $('kDate').value = S.date;
-  $('kDateLabel').textContent = S.mode === 'vor' ? 'Start im Wald' : 'Liefertermin bei Endanwender*in';
+  $('kDateLabel').textContent = S.mode === 'vor' ? 'Start im Wald' : 'Liefertermin beim Endkunden';
 
   $('chain').innerHTML = K.map((k, i) => `<div class="station"><span class="no">${i+1}</span>
     <svg class="pic" viewBox="0 0 160 100" role="img" aria-label="Bild: ${esc(k.name)}">${SCENE[k.icon] || ''}</svg><b>${esc(k.name)}</b><em>${esc(k.sub)}</em>
@@ -890,12 +935,12 @@ function renderKette(){
   });
 
   $('kKpis').innerHTML = [
-    ['Durchlaufzeit Wald → Endanwender*in', total + ' Tage', 'rund ' + n1(total / 7) + ' Wochen, davon ' + trans + ' Tage Transport'],
+    ['Durchlaufzeit Wald → Endkunde', total + ' Tage', 'rund ' + n1(total / 7) + ' Wochen, davon ' + trans + ' Tage Transport'],
     ['Rundholz aus dem Wald', n0(out[0]) + ' fm', 'für ' + nq(S.menge) + ' m³ am Ende'],
     ['Ausbeute über die ganze Kette', n0(gesamt * 100) + ' %', 'aus 1 fm werden ' + gesamt.toLocaleString('de-AT', { maximumFractionDigits: 2 }) + ' m³'],
     ['Kosten gesamt', eur(ctot), eur(ctot / S.menge) + ' je m³ am Ende'],
     ['Anteil Rundholz an den Kosten', n0(cs[0] / ctot * 100) + ' %', eur(cs[0]) + ' Rundholz, ' + eur(cTrans) + ' Transport'],
-    [S.mode === 'vor' ? 'Fertig bei Endanwender*in am' : 'Start im Wald spätestens', dt(S.mode === 'vor' ? ende : start), S.mode === 'vor' ? 'Start ' + dt(start) : 'Liefertermin ' + dt(ende)]
+    [S.mode === 'vor' ? 'Fertig beim Endkunden am' : 'Start im Wald spätestens', dt(S.mode === 'vor' ? ende : start), S.mode === 'vor' ? 'Start ' + dt(start) : 'Liefertermin ' + dt(ende)]
   ].map(k => `<div class="kpi"><span>${k[0]}</span><b>${k[1]}</b><small>${k[2]}</small></div>`).join('');
 
   /* Mengen-Grafik */
@@ -949,7 +994,7 @@ function renderKette(){
       <text x="${M ? GW - 2 : x1+6}" y="${y+13}" ${M ? 'text-anchor="end"' : ''} fill="var(--ink)">${k.tage} T. · bis ${dts(bis)}</text>`;
     t += k.tage;
   });
-  $('kChart').innerHTML = `<svg viewBox="0 0 ${GW} ${GH}" style="display:block;width:100%;height:auto" role="img" aria-label="Zeitstrahl der Lieferkette vom Wald bis zur Endanwender*in" font-size="12" fill="var(--muted)" font-family="inherit">${g}</svg>`;
+  $('kChart').innerHTML = `<svg viewBox="0 0 ${GW} ${GH}" style="display:block;width:100%;height:auto" role="img" aria-label="Zeitstrahl der Lieferkette vom Wald bis zum Endkunden" font-size="12" fill="var(--muted)" font-family="inherit">${g}</svg>`;
   t = 0;
   K.forEach((k, i) => {
     const von = addDays(start, t), bis = addDays(start, t + k.tage);
