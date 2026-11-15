@@ -141,9 +141,27 @@ td.r{white-space:nowrap}
   .fields button{grid-column:1/-1}
   td{padding:8px 8px 8px 0}
   .scroll>div{min-width:0!important}
-  #dispoTable :is(th,td):nth-child(2),#dispoTable :is(th,td):nth-child(3),#dispoTable :is(th,td):nth-child(4),#dispoTable :is(th,td):nth-child(6),
-  #planTable :is(th,td):nth-child(5),#planTable :is(th,td):nth-child(6),#planTable :is(th,td):nth-child(7),
-  #pipeTable :is(th,td):nth-child(3),#pipeTable :is(th,td):nth-child(5),
+  #dispoTable td:nth-child(3),#dispoTable td:nth-child(4),#dispoTable td:nth-child(6),#planTable td:nth-child(7),
+  #stockTable :is(th,td):nth-child(2),#stockTable :is(th,td):nth-child(3),
+  #weekTable :is(th,td):nth-child(2),#weekTable :is(th,td):nth-child(3),#weekTable :is(th,td):nth-child(4),#weekTable :is(th,td):nth-child(5),#weekTable :is(th,td):nth-child(6),#weekTable :is(th,td):nth-child(7),
+  :is(#dispoTable,#planTable,#pipeTable) thead{display:none}
+  :is(#dispoTable,#planTable,#pipeTable),:is(#dispoTable,#planTable,#pipeTable) tbody{display:block}
+  :is(#dispoTable,#planTable,#pipeTable) tr{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;padding:10px 8px;border-top:1px solid var(--line);border-radius:4px}
+  :is(#dispoTable,#planTable,#pipeTable) td{display:block;border:0;padding:0;white-space:nowrap;background:none}
+  :is(#dispoTable,#planTable,#pipeTable) td:first-child{flex:1 0 100%;font-weight:600;order:-2}
+  :is(#dispoTable,#planTable,#pipeTable) td::before{color:var(--muted)}
+  :is(#planTable,#pipeTable) td:has(.phase){flex:1 0 100%}
+  :is(#planTable,#pipeTable) td:last-child{margin-left:auto}
+  #dispoTable tr.sel{background:var(--field)}
+  #dispoTable td:nth-child(7){order:-1;flex:1 0 100%}
+  #dispoTable td:nth-child(2)::before{content:"Bestand "}
+  #dispoTable td:nth-child(5)::before{content:"reicht "}
+  #dispoTable td:nth-child(8)::before{content:"Einschnitt: "}
+  #dispoTable td:nth-child(9)::before{content:"Menge: "}
+  #planTable td:nth-child(3)::before,#pipeTable td:nth-child(3)::before{content:"Start: "}
+  #planTable td:nth-child(5)::before{content:"Rundholz "}
+  #planTable td:nth-child(8)::before,#pipeTable td:nth-child(6)::before{content:"im Lager am "}
+  td input{min-width:54px}
   #cTable :is(th,td):nth-child(4),#cTable :is(th,td):nth-child(5),#kTable :is(th,td):nth-child(2),#kTable :is(th,td):nth-child(7),
   #exPath :is(th,td):nth-child(5){display:none}
   .chain{flex-direction:column;gap:6px}
@@ -257,7 +275,7 @@ td.r{white-space:nowrap}
     <div class="kpis" id="kpis"></div>
     <div class="panel">
       <h2>Lagerbestand und Bedarf</h2>
-      <p class="hint">Zeile anklicken zeigt den Bestandsverlauf. Mengen in m³.</p>
+      <p class="hint">Artikel antippen zeigt den Bestandsverlauf. Mengen in m³.</p>
       <div class="scroll"><table id="dispoTable"></table></div>
     </div>
     <div class="panel" id="chartPanel">
