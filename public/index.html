@@ -75,6 +75,15 @@ button.del:hover{color:var(--bad)}
 .badge.good{background:var(--good-bg);color:var(--good)}
 .badge.warn{background:var(--warn-bg);color:var(--warn)}
 .badge.bad{background:var(--bad-bg);color:var(--bad)}
+.chain{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:10px}
+.station{position:relative;background:var(--field);border:1px solid var(--line);border-radius:6px;padding:10px 8px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center}
+.station svg{width:56px;height:56px;color:var(--accent)}
+.station.tr svg{color:var(--s2)}
+.station b{font-size:13px;line-height:1.2;min-height:32px;display:flex;align-items:center}
+.station label{display:flex;align-items:center;gap:4px;font-size:13px;color:var(--muted)}
+.station input{width:58px;text-align:center;padding:4px}
+.station .no{position:absolute;top:6px;left:8px;font-size:12px;color:var(--muted);font-weight:600}
+.station small{font-size:12px;color:var(--muted)}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
 .kpi{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 14px}
 .kpi span{display:block;font-size:13px;color:var(--muted)}
@@ -108,6 +117,7 @@ button.del:hover{color:var(--bad)}
 
   <nav role="tablist" id="nav">
     <button role="tab" data-tab="beispiel">Beispiel</button>
+    <button role="tab" data-tab="kette">Lieferkette</button>
     <button role="tab" data-tab="dispo">Disposition</button>
     <button role="tab" data-tab="plan">Einschnittplan</button>
     <button role="tab" data-tab="verkauf">Verkäufe</button>
@@ -143,6 +153,30 @@ button.del:hover{color:var(--bad)}
       <h3>3. Weg des Materials mit Terminen</h3>
       <div class="scroll"><table id="exPath"></table></div>
       <p class="hint" id="exNote"></p>
+    </div>
+  </section>
+
+  <!-- Lieferkette -->
+  <section id="tab-kette" class="tab" hidden>
+    <div class="panel">
+      <h2>Lieferkette – vom Wald bis zum fertigen Haus</h2>
+      <p class="hint">Jede Station mit ihrer Dauer in Tagen. Die Zeiten sind Beispielwerte und lassen sich direkt in den Kästchen ändern.</p>
+      <div id="chain" class="chain"></div>
+    </div>
+    <div class="panel">
+      <h2>Lieferkettenberechnung</h2>
+      <div class="fields">
+        <label class="f">Rechnen<select id="kMode"><option value="vor">vorwärts ab Start im Wald</option><option value="rueck">rückwärts vom Fertigtermin des Hauses</option></select></label>
+        <label class="f"><span id="kDateLabel">Start im Wald</span><input type="date" id="kDate"></label>
+      </div>
+      <div class="kpis" id="kKpis"></div>
+      <div class="legend">
+        <span><i class="box" style="background:var(--s1)"></i>Bearbeitung und Trocknung</span>
+        <span><i class="box" style="background:var(--s2)"></i>Transport</span>
+      </div>
+      <div class="scroll"><div id="kChart" style="min-width:760px"></div></div>
+      <div class="scroll"><table id="kTable"></table></div>
+      <p class="hint" id="kNote"></p>
     </div>
   </section>
 
@@ -376,6 +410,12 @@ if (typeof module !== 'undefined') module.exports = { plan, planAll, demoState, 
 <script id="ui">
 if (typeof document !== 'undefined') (function(){
 const KEY = 'croco-v2';
+const KETTE = [
+  ['Wald: Auszeichnen und Planung', 7, 'wald', 0], ['Holzernte: Harvester fällt, Forwarder rückt', 5, 'ernte', 0],
+  ['Transport zum Sägewerk', 3, 'lkw', 1], ['Sägewerk: Einschnitt', 5, 'saege', 0], ['Holztrocknung', 9, 'trock', 0],
+  ['Transport zum Kunden (Verarbeiter)', 2, 'lkw', 1], ['Produktion: Möbel oder Holzbau', 15, 'prod', 0],
+  ['Transport zum Kunden (Baustelle)', 1, 'lkw', 1], ['Bau des Hauses', 10, 'haus', 0]
+].map(([name, tage, icon, tr]) => ({ name, tage, icon, tr }));
 const now = today0();
 let state, selId = null, tab = 'beispiel';
 
@@ -385,6 +425,8 @@ function load(){
 }
 function save(){ try { localStorage.setItem(KEY, JSON.stringify(state)); } catch(e){} }
 state = load();
+if (!state.kette) state.kette = JSON.parse(JSON.stringify(KETTE));
+if (!state.ketteMode) state.ketteMode = 'vor';
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -403,7 +445,7 @@ const order = { engpass: 0, jetzt: 1, bald: 2, ok: 3 };
 
 function render(){
   const plans = planAll(state, now);
-  renderDispo(plans); renderBeispiel(plans); renderPlan(plans); renderSales(); renderLager(); renderStamm();
+  renderDispo(plans); renderBeispiel(plans); renderKette(); renderPlan(plans); renderSales(); renderLager(); renderStamm();
 }
 
 /* ----- Disposition ----- */
@@ -613,6 +655,59 @@ function renderBeispiel(plans){
 }
 $('exArt').onchange = () => { selId = +$('exArt').value; render(); };
 
+
+/* ----- Lieferkette ----- */
+const ICON = {
+  wald: '<path d="M14 6l9 16h-5l7 12H3l7-12H5z" fill="currentColor"/><rect x="12" y="34" width="4" height="8" fill="currentColor"/><path d="M34 14l7 12h-4l6 10H25l6-10h-4z" fill="currentColor" opacity=".6"/><rect x="32" y="36" width="4" height="6" fill="currentColor" opacity=".6"/>',
+  ernte: '<rect x="4" y="22" width="20" height="12" rx="2" fill="currentColor"/><rect x="8" y="14" width="10" height="9" rx="1.5" fill="currentColor" opacity=".6"/><circle cx="9" cy="37" r="5" fill="currentColor"/><circle cx="21" cy="37" r="5" fill="currentColor"/><path d="M20 22l10-12 8 6" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/><rect x="35" y="14" width="5" height="8" rx="1" fill="currentColor"/><path d="M44 8L33 42" stroke="currentColor" stroke-width="4" stroke-linecap="round" opacity=".6"/>',
+  lkw: '<rect x="2" y="26" width="30" height="4" fill="currentColor"/><rect x="33" y="18" width="12" height="14" rx="2" fill="currentColor"/><rect x="37" y="21" width="6" height="5" fill="var(--field)"/><circle cx="10" cy="36" r="4.5" fill="currentColor"/><circle cx="24" cy="36" r="4.5" fill="currentColor"/><circle cx="39" cy="36" r="4.5" fill="currentColor"/><g fill="currentColor" opacity=".6"><circle cx="8" cy="21" r="4"/><circle cx="17" cy="21" r="4"/><circle cx="26" cy="21" r="4"/><circle cx="12.5" cy="13.5" r="4"/><circle cx="21.5" cy="13.5" r="4"/></g>',
+  saege: '<circle cx="24" cy="24" r="13" fill="none" stroke="currentColor" stroke-width="6" stroke-dasharray="4.2 4" /><circle cx="24" cy="24" r="10" fill="currentColor"/><circle cx="24" cy="24" r="3" fill="var(--field)"/><rect x="2" y="36" width="44" height="6" rx="2" fill="currentColor" opacity=".6"/>',
+  trock: '<path d="M6 42V18L24 8l18 10v24z" fill="currentColor" opacity=".25"/><path d="M6 42V18L24 8l18 10v24" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/><g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M15 38c-3-4 3-6 0-10s3-6 0-9"/><path d="M24 38c-3-4 3-6 0-10s3-6 0-9"/><path d="M33 38c-3-4 3-6 0-10s3-6 0-9"/></g>',
+  prod: '<path d="M4 42V22l12 7v-7l12 7v-7l8 5V8h8v34z" fill="currentColor"/><g fill="var(--field)"><rect x="9" y="33" width="5" height="5"/><rect x="19" y="33" width="5" height="5"/><rect x="29" y="33" width="5" height="5"/></g>',
+  haus: '<path d="M4 24L24 6l20 18" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/><path d="M9 23v19h30V23L24 10z" fill="currentColor" opacity=".6"/><rect x="20" y="29" width="8" height="13" fill="currentColor"/><rect x="33" y="8" width="5" height="9" fill="currentColor"/>'
+};
+function renderKette(){
+  const K = state.kette, total = K.reduce((s,k) => s + k.tage, 0);
+  const trans = K.filter(k => k.tr).reduce((s,k) => s + k.tage, 0);
+  const mode = state.ketteMode;
+  if (!state.ketteDate) state.ketteDate = iso(now);
+  const base = parseDate(state.ketteDate), start = mode === 'vor' ? base : addDays(base, -total), ende = addDays(start, total);
+  let cum = 0;
+  $('chain').innerHTML = K.map((k, i) => { cum += k.tage; return `<div class="station ${k.tr ? 'tr' : ''}"><span class="no">${i+1}</span>
+    <svg viewBox="0 0 48 48" aria-hidden="true">${ICON[k.icon] || ''}</svg><b>${esc(k.name)}</b>
+    <label><input type="number" min="0" step="1" value="${k.tage}" data-k="${i}" aria-label="Dauer ${esc(k.name)} in Tagen"> Tage</label>
+    <small>fertig: Tag ${cum}</small></div>`; }).join('');
+  $('chain').querySelectorAll('[data-k]').forEach(inp => inp.onchange = () => { K[+inp.dataset.k].tage = Math.max(0, Math.round(+inp.value || 0)); save(); render(); });
+  $('kMode').value = mode; $('kDate').value = state.ketteDate;
+  $('kDateLabel').textContent = mode === 'vor' ? 'Start im Wald' : 'Haus fertig am';
+  const longest = K.reduce((a,b) => b.tage > a.tage ? b : a, K[0]);
+  $('kKpis').innerHTML = [
+    ['Gesamte Durchlaufzeit', total + ' Tage', 'rund ' + n1(total / 7) + ' Wochen'],
+    ['Bearbeitung und Trocknung', (total - trans) + ' Tage', total ? n0((total - trans) / total * 100) + ' % der Zeit' : ''],
+    ['Transport', trans + ' Tage', total ? n0(trans / total * 100) + ' % der Zeit' : ''],
+    [mode === 'vor' ? 'Haus fertig am' : 'Start im Wald spätestens', dt(mode === 'vor' ? ende : start), mode === 'vor' ? 'Start ' + dt(start) : 'Fertigtermin ' + dt(ende)]
+  ].map(k => `<div class="kpi"><span>${k[0]}</span><b>${k[1]}</b><small>${k[2]}</small></div>`).join('');
+  const GW = 1000, GL = 300, GR = 150, RH = 28, GT = 24, GH = GT + K.length * RH + 6, gx = t => GL + t / Math.max(1, total) * (GW - GL - GR);
+  let g = '', t = 0;
+  const tick = total > 120 ? 30 : total > 60 ? 14 : 7;
+  for (let d = 0; d <= total; d += tick) g += `<line x1="${gx(d)}" x2="${gx(d)}" y1="${GT}" y2="${GH}" stroke="var(--line)"/><text x="${gx(d)}" y="14" text-anchor="middle">${d ? 'Tag ' + d : 'Start'}</text>`;
+  let rows = '';
+  K.forEach((k, i) => {
+    const y = GT + i * RH + 5, x0 = gx(t), x1 = gx(t + k.tage), von = addDays(start, t), bis = addDays(start, t + k.tage);
+    g += `<text x="0" y="${y+13}" fill="var(--ink)" font-size="13">${i+1}. ${esc(k.name)}</text>
+      <rect x="${x0+1}" y="${y}" width="${Math.max(2, x1-x0-2)}" height="18" rx="4" fill="var(--${k.tr ? 's2' : 's1'})"><title>${esc(k.name)}: ${k.tage} Tage, ${dt(von)} bis ${dt(bis)}</title></rect>
+      <text x="${x1+6}" y="${y+13}" fill="var(--ink)">${k.tage} T. · bis ${dts(bis)}</text>`;
+    rows += `<tr><td>${i+1}. ${esc(k.name)}</td><td>${k.tr ? 'Transport' : 'Bearbeitung'}</td><td class="r">${k.tage} Tage</td><td>${dt(von)}</td><td>${dt(bis)}</td><td class="r">${t + k.tage} Tage</td><td class="r">${total ? n0(k.tage / total * 100) : 0} %</td></tr>`;
+    t += k.tage;
+  });
+  $('kChart').innerHTML = `<svg viewBox="0 0 ${GW} ${GH}" style="display:block;width:100%;height:auto" role="img" aria-label="Zeitstrahl der Lieferkette vom Wald bis zum Haus" font-size="12" fill="var(--muted)" font-family="inherit">${g}</svg>`;
+  $('kTable').innerHTML = `<thead><tr><th>Station</th><th>Art</th><th class="r">Dauer</th><th>von</th><th>bis</th><th class="r">Zeit seit Start</th><th class="r">Anteil</th></tr></thead><tbody>${rows}
+    <tr><td><b>Gesamt</b></td><td></td><td class="r"><b>${total} Tage</b></td><td><b>${dt(start)}</b></td><td><b>${dt(ende)}</b></td><td></td><td class="r">100 %</td></tr></tbody>`;
+  $('kNote').innerHTML = `Gerechnet wird in Kalendertagen, eine Station folgt direkt auf die andere. Am längsten dauert <b>${esc(longest.name)}</b> mit ${longest.tage} Tagen.`;
+}
+$('kMode').onchange = () => { state.ketteMode = $('kMode').value; save(); render(); };
+$('kDate').onchange = () => { if ($('kDate').value){ state.ketteDate = $('kDate').value; save(); render(); } };
+
 /* ----- Einschnittplan ----- */
 function phaseBar(t){
   const seg = (v, c, name) => v > 0 ? `<i style="flex:${v};background:var(--${c})" title="${name}: ${v} Tage"></i>` : '';
@@ -744,7 +839,7 @@ function renderStamm(){
 }
 $('addDry').onclick = () => { state.trocknung.push({ art: 'Fichte', bis: 160, tage: 22 }); save(); render(); };
 $('addArt').onclick = () => { state.artikel.push({ id: state.nextId++, name: 'Neuer Artikel', art: 'Fichte', staerke: 60, breite: 120, bestand: 0, paket: 3.5 }); save(); render(); };
-$('resetBtn').onclick = () => { state = demoState(now); selId = null; save(); render(); };
+$('resetBtn').onclick = () => { state = demoState(now); state.kette = JSON.parse(JSON.stringify(KETTE)); state.ketteMode = 'vor'; selId = null; save(); render(); };
 $('exportBtn').onclick = () => {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' }));
@@ -755,11 +850,11 @@ $('exportBtn').onclick = () => {
 function showTab(t){
   tab = t;
   document.querySelectorAll('#nav button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === t));
-  ['beispiel','dispo','plan','verkauf','lager','stamm'].forEach(k => $('tab-' + k).hidden = k !== t);
+  ['beispiel','kette','dispo','plan','verkauf','lager','stamm'].forEach(k => $('tab-' + k).hidden = k !== t);
 }
 document.querySelectorAll('#nav button').forEach(b => b.onclick = () => showTab(b.dataset.tab));
 const h = location.hash.slice(1);
-showTab(['beispiel','dispo','plan','verkauf','lager','stamm'].includes(h) ? h : 'beispiel');
+showTab(['beispiel','kette','dispo','plan','verkauf','lager','stamm'].includes(h) ? h : 'beispiel');
 render();
 })();
 </script>
