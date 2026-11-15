@@ -75,6 +75,8 @@ button.del:hover{color:var(--bad)}
 .badge.good{background:var(--good-bg);color:var(--good)}
 .badge.warn{background:var(--warn-bg);color:var(--warn)}
 .badge.bad{background:var(--bad-bg);color:var(--bad)}
+.pano{overflow-x:auto}
+.pano-hint{display:none}
 .chain{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch}
 .link{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:12px;color:var(--muted);min-width:74px}
 .link svg{width:44px;height:44px;color:var(--s2)}
@@ -141,6 +143,8 @@ td.r{white-space:nowrap}
   .fields button{grid-column:1/-1}
   td{padding:8px 8px 8px 0}
   .scroll>div{min-width:0!important}
+  #pano{min-width:900px}
+  .pano-hint{display:block}
   #dispoTable td:nth-child(3),#dispoTable td:nth-child(4),#dispoTable td:nth-child(6),#planTable td:nth-child(7),
   #stockTable :is(th,td):nth-child(2),#stockTable :is(th,td):nth-child(3),
   #weekTable :is(th,td):nth-child(2),#weekTable :is(th,td):nth-child(3),#weekTable :is(th,td):nth-child(4),#weekTable :is(th,td):nth-child(5),#weekTable :is(th,td):nth-child(6),#weekTable :is(th,td):nth-child(7),
@@ -236,10 +240,15 @@ td.r{white-space:nowrap}
   <!-- Lieferkette -->
   <section id="tab-kette" class="tab" hidden>
     <div class="panel">
-      <h2>Lieferkette – vom Wald zum Kunden</h2>
+      <h2>Vom Wald bis zur Endanwender*in</h2>
+      <div class="pano"><div id="pano"></div></div>
+      <p class="hint pano-hint">Die Grafik lässt sich seitlich wischen.</p>
+    </div>
+    <div class="panel">
+      <h2>Lieferkette – Stufen und Annahmen</h2>
       <div class="fields">
         <label class="f">Weiterverarbeitung und Produkt<select id="scmVar"></select></label>
-        <label class="f">Bedarf beim Kunden (m³ fertiges Holz)<input type="number" id="scmMenge" min="0.01" step="0.01"></label>
+        <label class="f">Bedarf bei Endanwender*in (m³ fertiges Holz)<input type="number" id="scmMenge" min="0.01" step="0.01"></label>
         <label class="f">Rechnen<select id="kMode"><option value="rueck">rückwärts vom Liefertermin</option><option value="vor">vorwärts ab Start im Wald</option></select></label>
         <label class="f"><span id="kDateLabel">Liefertermin</span><input type="date" id="kDate"></label>
       </div>
@@ -249,7 +258,7 @@ td.r{white-space:nowrap}
     <div class="panel">
       <h2>SCM-Berechnung</h2>
       <div class="kpis" id="kKpis"></div>
-      <h3>Menge: Was muss in jeder Stufe hinein, damit beim Kunden genug ankommt?</h3>
+      <h3>Menge: Was muss in jeder Stufe hinein, damit am Ende genug ankommt?</h3>
       <div class="scroll"><div id="scmQty" style="min-width:640px"></div></div>
       <h3>Kosten: Was kostet das Holz nach jeder Stufe?</h3>
       <div class="legend">
@@ -503,7 +512,7 @@ const KEY = 'croco-v2';
 const SCM_VAR = {
   holzbau: ['Holzbau → Dachstuhl / Haus', 'Holzbau: Abbund und Vorfertigung', 15, 90, 1, 'Dachstuhl / Haus: Montage auf der Baustelle', 10, 280, 25, 320, 12],
   tischlerei: ['Tischlerei → Tisch / Möbel', 'Tischlerei: Zuschnitt und Fertigung', 20, 70, 1, 'Tisch / Möbel: Lieferung und Aufbau', 2, 2500, 60, 150, 0.08],
-  industrie: ['Holzindustrie → andere Holzprodukte', 'Holzindustrie: z. B. KVH, Leimholz', 7, 85, 2, 'Holzprodukte: Übernahme beim Kunden', 1, 130, 15, 0, 40]
+  industrie: ['Holzindustrie → andere Holzprodukte', 'Holzindustrie: z. B. KVH, Leimholz', 7, 85, 2, 'Holzprodukte: Übernahme', 1, 130, 15, 0, 40]
 };
 function scmDefault(v){
   const x = SCM_VAR[v];
@@ -512,7 +521,7 @@ function scmDefault(v){
     { name: 'Sägewerk', sub: 'Einschnitt zu Schnittholz', tage: 5, ausbeute: 55, trans: 1, icon: 'saege', kost: 35, ktrans: 6 },
     { name: 'Holztrocknung', sub: 'Trockenkammer', tage: 9, ausbeute: 95, trans: 2, icon: 'trock', kost: 30, ktrans: 12 },
     { name: 'Weiterverarbeitung', sub: x[1], tage: x[2], ausbeute: x[3], trans: x[4], icon: 'prod', kost: x[7], ktrans: x[8] },
-    { name: 'Kunde', sub: x[5], tage: x[6], ausbeute: 100, trans: 0, icon: 'haus', kost: x[9], ktrans: 0 }
+    { name: 'Endanwender*in', sub: x[5], tage: x[6], ausbeute: 100, trans: 0, icon: 'haus', kost: x[9], ktrans: 0 }
   ] };
 }
 const now = today0();
@@ -527,6 +536,7 @@ function load(){
 }
 function save(){ try { localStorage.setItem(KEY, JSON.stringify(state)); } catch(e){} }
 state = load();
+if (state.scm && state.scm.st[4] && state.scm.st[4].name === 'Kunde') state.scm.st[4].name = 'Endanwender*in';
 if (!state.scm || state.scm.st[0].kost === undefined) state.scm = scmDefault(state.scm && SCM_VAR[state.scm.variante] ? state.scm.variante : 'holzbau');
 
 const $ = id => document.getElementById(id);
@@ -774,29 +784,72 @@ const SKY = '<rect width="160" height="100" fill="#cfe8f5"/><circle cx="136" cy=
 const TREE = (x, y, h, c) => `<rect x="${x-1.5}" y="${y-h*0.18}" width="3" height="${h*0.18}" fill="#7a5a3a"/><path d="M${x} ${y-h}l${h*0.22} ${h*0.32}h-${h*0.1}l${h*0.2} ${h*0.28}h-${h*0.12}l${h*0.2} ${h*0.24}H${x-h*0.4}l${h*0.2}-${h*0.24}h-${h*0.12}l${h*0.2}-${h*0.28}h-${h*0.1}z" fill="${c}"/>`;
 const LOGS = (x, y) => `<g stroke="#8a6238" stroke-width=".8"><circle cx="${x}" cy="${y}" r="4" fill="#e3c08a"/><circle cx="${x+8}" cy="${y}" r="4" fill="#e3c08a"/><circle cx="${x+16}" cy="${y}" r="4" fill="#e3c08a"/><circle cx="${x+4}" cy="${y-7}" r="4" fill="#e9cc9c"/><circle cx="${x+12}" cy="${y-7}" r="4" fill="#e9cc9c"/></g><g fill="#8a6238"><circle cx="${x}" cy="${y}" r="1"/><circle cx="${x+8}" cy="${y}" r="1"/><circle cx="${x+16}" cy="${y}" r="1"/><circle cx="${x+4}" cy="${y-7}" r="1"/><circle cx="${x+12}" cy="${y-7}" r="1"/></g>`;
 const BOARDS = (x, y, n, w) => { let o = ''; for (let i = 0; i < n; i++) o += `<rect x="${x}" y="${y - i*4.5}" width="${w}" height="3" rx=".6" fill="${i % 2 ? '#e9cc9c' : '#dfb97e'}"/>`; return o; };
+const P_SAEGE = '<path d="M8 78V44l16-10v10l16-10v10l16-10v44z" fill="#c9684a"/><path d="M8 44l16-10v10l16-10v10l16-10v8L8 52z" fill="#a9523a"/><rect x="16" y="60" width="12" height="18" fill="#5b4636"/><rect x="36" y="58" width="12" height="8" fill="#e8f3f8"/>' +
+    '<rect x="62" y="72" width="60" height="4" fill="#6b7078"/><g fill="#6b7078"><rect x="66" y="76" width="3" height="6"/><rect x="92" y="76" width="3" height="6"/><rect x="116" y="76" width="3" height="6"/></g>' +
+    '<rect x="64" y="62" width="34" height="10" rx="5" fill="#b98a55"/><circle cx="64.5" cy="67" r="5" fill="#e3c08a" stroke="#8a6238"/><circle cx="64.5" cy="67" r="2" fill="none" stroke="#8a6238" stroke-width=".7"/>' +
+    '<circle cx="106" cy="66" r="13" fill="none" stroke="#8d949c" stroke-width="5" stroke-dasharray="3.4 3.4"/><circle cx="106" cy="66" r="10.5" fill="#c7ccd1"/><circle cx="106" cy="66" r="2.5" fill="#6b7078"/>' + BOARDS(128, 86, 5, 26);
+const P_TROCK = '<rect x="22" y="30" width="96" height="48" rx="2" fill="#d9dde2"/><rect x="22" y="30" width="96" height="7" fill="#aab1b9"/><rect x="30" y="42" width="80" height="36" fill="#4a4f57"/>' +
+    BOARDS(36, 73, 7, 30) + BOARDS(74, 73, 7, 30) +
+    '<g fill="none" stroke="#f08a4b" stroke-width="2" stroke-linecap="round"><path d="M46 26c-3-4 3-6 0-10s3-6 0-9"/><path d="M70 26c-3-4 3-6 0-10s3-6 0-9"/><path d="M94 26c-3-4 3-6 0-10s3-6 0-9"/></g>' +
+    '<rect x="126" y="50" width="12" height="28" rx="2" fill="#aab1b9"/><circle cx="132" cy="58" r="3.5" fill="#fff"/><path d="M132 58l2-2" stroke="#c9684a" stroke-width="1"/><text x="132" y="72" text-anchor="middle" font-size="5" fill="#33383f" font-family="sans-serif">15 %</text>';
+const P_HALLE = '<path d="M4 78V42l38-18 38 18v36z" fill="#e9dcc4" stroke="#b98a55" stroke-width="1.5"/><path d="M0 44l42-20 42 20" fill="none" stroke="#8a6238" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="14" y="50" width="56" height="28" fill="#5b4636"/>' +
+    '<g stroke="#e3c08a" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" fill="none"><path d="M22 74l20-20 20 20z"/><path d="M42 54v20M32 64l10 10M52 64L42 74"/></g><rect x="28" y="36" width="28" height="8" rx="1.5" fill="#fff"/><text x="42" y="42.2" text-anchor="middle" font-size="5.6" font-weight="700" fill="#5b4636" font-family="sans-serif">HOLZBAU</text>';
+const P_HAUS = '<rect x="52" y="48" width="66" height="34" fill="#f4ead6"/><rect x="52" y="48" width="66" height="34" fill="none" stroke="#b98a55" stroke-width="1.5"/>' +
+    '<path d="M44 50L85 20l41 30z" fill="#c9684a"/><g stroke="#b98a55" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"><path d="M85 20l41 30M85 20v30M100 31l-15 19M113 41l-28 9"/></g><path d="M44 50L85 20v30z" fill="#a9523a"/>' +
+    '<rect x="62" y="58" width="12" height="24" fill="#8a6238"/><circle cx="71.5" cy="71" r="1" fill="#ffe08a"/><rect x="88" y="58" width="20" height="13" fill="#cfe8f5" stroke="#fff" stroke-width="1.5"/><path d="M98 58v13" stroke="#fff" stroke-width="1.2"/>' +
+    '<rect x="130" y="80" width="22" height="3" rx=".8" fill="#b98a55"/><path d="M133 83v9M149 83v9" stroke="#8a6238" stroke-width="2.4" stroke-linecap="round"/>';
 const SCENE = {
   wald: SKY + '<path d="M0 62q40-22 80-6t80-8v52H0z" fill="#9ccf8f"/><path d="M0 74q50-14 100-2t60-4v32H0z" fill="#6fb46a"/>' +
     TREE(22, 70, 44, '#2f7d4f') + TREE(44, 66, 36, '#3c9160') + TREE(64, 74, 50, '#256b42') + TREE(92, 68, 34, '#3c9160') + TREE(146, 72, 46, '#2f7d4f') +
     '<rect x="108" y="76" width="7" height="6" fill="#8a6238"/><ellipse cx="111.5" cy="76" rx="3.5" ry="1.4" fill="#e3c08a"/>' + LOGS(116, 90),
-  saege: SKY + '<rect y="78" width="160" height="22" fill="#b9b3a6"/><path d="M8 78V44l16-10v10l16-10v10l16-10v44z" fill="#c9684a"/><path d="M8 44l16-10v10l16-10v10l16-10v8L8 52z" fill="#a9523a"/><rect x="16" y="60" width="12" height="18" fill="#5b4636"/><rect x="36" y="58" width="12" height="8" fill="#e8f3f8"/>' +
-    '<rect x="62" y="72" width="60" height="4" fill="#6b7078"/><g fill="#6b7078"><rect x="66" y="76" width="3" height="6"/><rect x="92" y="76" width="3" height="6"/><rect x="116" y="76" width="3" height="6"/></g>' +
-    '<rect x="64" y="62" width="34" height="10" rx="5" fill="#b98a55"/><circle cx="64.5" cy="67" r="5" fill="#e3c08a" stroke="#8a6238"/><circle cx="64.5" cy="67" r="2" fill="none" stroke="#8a6238" stroke-width=".7"/>' +
-    '<circle cx="106" cy="66" r="13" fill="none" stroke="#8d949c" stroke-width="5" stroke-dasharray="3.4 3.4"/><circle cx="106" cy="66" r="10.5" fill="#c7ccd1"/><circle cx="106" cy="66" r="2.5" fill="#6b7078"/>' + BOARDS(128, 86, 5, 26),
-  trock: SKY + '<rect y="78" width="160" height="22" fill="#b9b3a6"/><rect x="22" y="30" width="96" height="48" rx="2" fill="#d9dde2"/><rect x="22" y="30" width="96" height="7" fill="#aab1b9"/><rect x="30" y="42" width="80" height="36" fill="#4a4f57"/>' +
-    BOARDS(36, 73, 7, 30) + BOARDS(74, 73, 7, 30) +
-    '<g fill="none" stroke="#f08a4b" stroke-width="2" stroke-linecap="round"><path d="M46 26c-3-4 3-6 0-10s3-6 0-9"/><path d="M70 26c-3-4 3-6 0-10s3-6 0-9"/><path d="M94 26c-3-4 3-6 0-10s3-6 0-9"/></g>' +
-    '<rect x="126" y="50" width="12" height="28" rx="2" fill="#aab1b9"/><circle cx="132" cy="58" r="3.5" fill="#fff"/><path d="M132 58l2-2" stroke="#c9684a" stroke-width="1"/><text x="132" y="72" text-anchor="middle" font-size="5" fill="#33383f" font-family="sans-serif">15 %</text>',
+  saege: SKY + '<rect y="78" width="160" height="22" fill="#b9b3a6"/>' + P_SAEGE,
+  trock: SKY + '<rect y="78" width="160" height="22" fill="#b9b3a6"/>' + P_TROCK,
   prod: '<rect width="160" height="100" fill="#f1e9da"/><rect y="80" width="160" height="20" fill="#cdbfa6"/><rect x="8" y="12" width="34" height="24" fill="#cfe8f5" stroke="#fff" stroke-width="2"/><path d="M25 12v24M8 24h34" stroke="#fff" stroke-width="1.5"/>' +
     '<g stroke="#b98a55" stroke-width="5" stroke-linejoin="round" stroke-linecap="round" fill="none"><path d="M58 70L96 30l38 40z"/><path d="M96 30v40M77 50l19 20M115 50L96 70"/></g>' +
     '<g stroke="#6b7078" stroke-width="2.5" stroke-linecap="round"><path d="M64 74l-5 12M70 74l5 12M122 74l-5 12M128 74l5 12"/></g>' +
     '<rect x="10" y="58" width="36" height="5" rx="1" fill="#b98a55"/><path d="M14 63v20M42 63v20" stroke="#8a6238" stroke-width="3.5" stroke-linecap="round"/><path d="M14 72h28" stroke="#8a6238" stroke-width="2"/>' +
     '<rect x="138" y="20" width="14" height="3" fill="#8a6238"/><path d="M141 23v9M145 23v12M149 23v7" stroke="#6b7078" stroke-width="1.6" stroke-linecap="round"/>',
-  haus: SKY + '<path d="M0 76q80-10 160 0v24H0z" fill="#8fc98a"/>' + TREE(20, 80, 34, '#2f7d4f') +
-    '<rect x="52" y="48" width="66" height="34" fill="#f4ead6"/><rect x="52" y="48" width="66" height="34" fill="none" stroke="#b98a55" stroke-width="1.5"/>' +
-    '<path d="M44 50L85 20l41 30z" fill="#c9684a"/><g stroke="#b98a55" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"><path d="M85 20l41 30M85 20v30M100 31l-15 19M113 41l-28 9"/></g><path d="M44 50L85 20v30z" fill="#a9523a"/>' +
-    '<rect x="62" y="58" width="12" height="24" fill="#8a6238"/><circle cx="71.5" cy="71" r="1" fill="#ffe08a"/><rect x="88" y="58" width="20" height="13" fill="#cfe8f5" stroke="#fff" stroke-width="1.5"/><path d="M98 58v13" stroke="#fff" stroke-width="1.2"/>' +
-    '<rect x="130" y="80" width="22" height="3" rx=".8" fill="#b98a55"/><path d="M133 83v9M149 83v9" stroke="#8a6238" stroke-width="2.4" stroke-linecap="round"/>'
+  haus: SKY + '<path d="M0 76q80-10 160 0v24H0z" fill="#8fc98a"/>' + TREE(20, 80, 34, '#2f7d4f') + P_HAUS
 };
+/* Lastwagen (fährt nach rechts), y = Fahrbahn */
+const TRUCK = (x, y, load) => `<rect x="${x}" y="${y-12}" width="34" height="3" fill="#4a4f57"/><path d="M${x+35} ${y-6}v-17h9l5 7v10z" fill="#e2572b"/><path d="M${x+40} ${y-20}h3l3 5h-6z" fill="#e8f3f8"/>
+  <g fill="#2b2f35"><circle cx="${x+7}" cy="${y-5}" r="4.5"/><circle cx="${x+24}" cy="${y-5}" r="4.5"/><circle cx="${x+41}" cy="${y-5}" r="4.5"/></g><g fill="#c7ccd1"><circle cx="${x+7}" cy="${y-5}" r="1.6"/><circle cx="${x+24}" cy="${y-5}" r="1.6"/><circle cx="${x+41}" cy="${y-5}" r="1.6"/></g>` +
+  (load === 'logs' ? LOGS(x + 6, y - 16) + `<circle cx="${x+30}" cy="${y-16}" r="4" fill="#e3c08a" stroke="#8a6238" stroke-width=".8"/>`
+   : load === 'truss' ? `<path d="M${x+3} ${y-13}l14-13 14 13z M${x+17} ${y-26}v13" fill="none" stroke="#b98a55" stroke-width="2.6" stroke-linejoin="round"/>`
+   : BOARDS(x + 3, y - 15.5, 3, 28));
+const PERSON = (x, y, shirt, hair, long) => `<path d="M${x-3} ${y}v-12M${x+3} ${y}v-12" stroke="#33383f" stroke-width="3.4" stroke-linecap="round"/>
+  <rect x="${x-6}" y="${y-27}" width="12" height="17" rx="4" fill="${shirt}"/><path d="M${x+5} ${y-24}l7-8" stroke="${shirt}" stroke-width="3.4" stroke-linecap="round"/><circle cx="${x+12.5}" cy="${y-33}" r="2" fill="#f2c9a0"/>
+  <circle cx="${x}" cy="${y-33}" r="5.5" fill="#f2c9a0"/><path d="M${x-5.5} ${y-33}a5.5 5.5 0 0 1 11 0${long ? `v7h-2.2v-6h-6.6v6h-2.2z` : 'z'}" fill="${hair}"/>`;
+function panorama(K, out, cumA, eur, nq, unit){
+  const G = 200, R = 236, sc = (part, x, k) => `<g transform="translate(${x} ${G - 78*k}) scale(${k})">${part}</g>`;
+  const xs = [90, 295, 500, 705, 910];
+  let lab = '';
+  K.forEach((k, i) => {
+    lab += `<rect x="${xs[i]-74}" y="252" width="148" height="56" rx="6" fill="var(--panel)" stroke="var(--line)"/>
+      <text x="${xs[i]}" y="270" text-anchor="middle" font-weight="700" font-size="13" fill="var(--ink)">${i+1}. ${esc(k.name)}</text>
+      <text x="${xs[i]}" y="285" text-anchor="middle" fill="var(--muted)">${nq(out[i])} ${unit(i)} · ${k.tage} Tage</text>
+      <text x="${xs[i]}" y="300" text-anchor="middle" fill="var(--muted)">bisher ${eur(cumA[i])}</text>`;
+    if (i < K.length - 1) lab += `<path d="M${xs[i]+78} 280H${xs[i+1]-82}" stroke="var(--muted)" stroke-width="2" marker-end="url(#pah)"/><text x="${(xs[i]+xs[i+1])/2}" y="274" text-anchor="middle" font-size="10.5" fill="var(--muted)">${k.trans} T.</text>`;
+  });
+  return `<svg viewBox="0 0 1000 312" style="display:block;width:100%;height:auto" role="img" aria-label="Grafik der Lieferkette: Wald, Sägewerk, Holztrocknung, Weiterverarbeitung, Endanwender*in" font-size="11.5" font-family="inherit">
+    <defs><marker id="pah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker>
+    <clipPath id="pcl"><rect width="1000" height="244" rx="10"/></clipPath></defs>
+    <g clip-path="url(#pcl)">
+    <rect width="1000" height="244" fill="#cfe8f5"/><circle cx="930" cy="38" r="17" fill="#ffe08a"/>
+    <g fill="#fff" opacity=".9"><path d="M230 46h44a14 14 0 0 0-26-9 12 12 0 0 0-18 9z"/><path d="M520 30h36a12 12 0 0 0-22-8 10 10 0 0 0-14 8z"/><path d="M760 58h30a10 10 0 0 0-18-6 8 8 0 0 0-12 6z"/></g>
+    <path d="M0 150q120-70 260-22t260-26 240 30 240-34v146H0z" fill="#b5dba6"/>
+    <path d="M0 184q200-34 420-8t580-14v82H0z" fill="#8fc98a"/>
+    <rect y="${G}" width="1000" height="44" fill="#7dbb78"/>
+    <rect y="${R-18}" width="1000" height="22" fill="#8d949c"/><path d="M0 ${R-7}h1000" stroke="#fff" stroke-width="1.6" stroke-dasharray="14 12"/>
+    ${TREE(18, 196, 70, '#256b42')}${TREE(46, 190, 58, '#3c9160')}${TREE(74, 200, 84, '#2f7d4f')}${TREE(104, 192, 62, '#3c9160')}${TREE(132, 200, 76, '#256b42')}${TREE(160, 190, 50, '#2f7d4f')}
+    <rect x="112" y="${G+2}" width="9" height="8" fill="#8a6238"/><ellipse cx="116.5" cy="${G+2}" rx="4.5" ry="1.8" fill="#e3c08a"/>${LOGS(134, G + 12)}
+    ${sc(P_SAEGE, 205, 1.12)}${sc(P_TROCK, 400, 1.12)}${sc(P_HALLE, 622, 1.5)}${sc(P_HAUS, 760, 1.3)}
+    ${TREE(790, 204, 46, '#2f7d4f')}
+    ${PERSON(946, G + 14, '#2a78d6', '#5b4636', true)}${PERSON(974, G + 14, '#1baf7a', '#33383f', false)}
+    ${TRUCK(168, R, 'logs')}${TRUCK(560, R, 'boards')}${TRUCK(762, R, K[3] && /Tisch|Industrie|Holzindustrie/.test(K[3].sub) ? 'boards' : 'truss')}
+    </g>${lab}</svg>`;
+}
+
 function renderKette(){
   const nq = x => x.toLocaleString('de-AT', x < 10 ? { minimumFractionDigits: 2, maximumFractionDigits: 2 } : { minimumFractionDigits: 1, maximumFractionDigits: 1 });
   const eur = x => (Math.abs(x) < 100 ? x.toLocaleString('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : n0(x)) + ' €';
@@ -817,11 +870,12 @@ function renderKette(){
   });
   const ctot = cum, cTrans = ct.reduce((a,b) => a + b, 0);
   const unit = i => i === 0 ? 'fm' : 'm³';
+  $('pano').innerHTML = panorama(K, out, cumA, eur, nq, unit);
   const base = parseDate(S.date), start = S.mode === 'vor' ? base : addDays(base, -total), ende = addDays(start, total);
 
   $('scmVar').innerHTML = Object.keys(SCM_VAR).map(k => `<option value="${k}">${SCM_VAR[k][0]}</option>`).join('');
   $('scmVar').value = S.variante; $('scmMenge').value = S.menge; $('kMode').value = S.mode; $('kDate').value = S.date;
-  $('kDateLabel').textContent = S.mode === 'vor' ? 'Start im Wald' : 'Liefertermin beim Kunden';
+  $('kDateLabel').textContent = S.mode === 'vor' ? 'Start im Wald' : 'Liefertermin bei Endanwender*in';
 
   $('chain').innerHTML = K.map((k, i) => `<div class="station"><span class="no">${i+1}</span>
     <svg class="pic" viewBox="0 0 160 100" role="img" aria-label="Bild: ${esc(k.name)}">${SCENE[k.icon] || ''}</svg><b>${esc(k.name)}</b><em>${esc(k.sub)}</em>
@@ -836,12 +890,12 @@ function renderKette(){
   });
 
   $('kKpis').innerHTML = [
-    ['Durchlaufzeit Wald → Kunde', total + ' Tage', 'rund ' + n1(total / 7) + ' Wochen, davon ' + trans + ' Tage Transport'],
-    ['Rundholz aus dem Wald', n0(out[0]) + ' fm', 'für ' + nq(S.menge) + ' m³ beim Kunden'],
+    ['Durchlaufzeit Wald → Endanwender*in', total + ' Tage', 'rund ' + n1(total / 7) + ' Wochen, davon ' + trans + ' Tage Transport'],
+    ['Rundholz aus dem Wald', n0(out[0]) + ' fm', 'für ' + nq(S.menge) + ' m³ am Ende'],
     ['Ausbeute über die ganze Kette', n0(gesamt * 100) + ' %', 'aus 1 fm werden ' + gesamt.toLocaleString('de-AT', { maximumFractionDigits: 2 }) + ' m³'],
-    ['Kosten gesamt', eur(ctot), eur(ctot / S.menge) + ' je m³ beim Kunden'],
+    ['Kosten gesamt', eur(ctot), eur(ctot / S.menge) + ' je m³ am Ende'],
     ['Anteil Rundholz an den Kosten', n0(cs[0] / ctot * 100) + ' %', eur(cs[0]) + ' Rundholz, ' + eur(cTrans) + ' Transport'],
-    [S.mode === 'vor' ? 'Beim Kunden fertig am' : 'Start im Wald spätestens', dt(S.mode === 'vor' ? ende : start), S.mode === 'vor' ? 'Start ' + dt(start) : 'Liefertermin ' + dt(ende)]
+    [S.mode === 'vor' ? 'Fertig bei Endanwender*in am' : 'Start im Wald spätestens', dt(S.mode === 'vor' ? ende : start), S.mode === 'vor' ? 'Start ' + dt(start) : 'Liefertermin ' + dt(ende)]
   ].map(k => `<div class="kpi"><span>${k[0]}</span><b>${k[1]}</b><small>${k[2]}</small></div>`).join('');
 
   /* Mengen-Grafik */
@@ -895,7 +949,7 @@ function renderKette(){
       <text x="${M ? GW - 2 : x1+6}" y="${y+13}" ${M ? 'text-anchor="end"' : ''} fill="var(--ink)">${k.tage} T. · bis ${dts(bis)}</text>`;
     t += k.tage;
   });
-  $('kChart').innerHTML = `<svg viewBox="0 0 ${GW} ${GH}" style="display:block;width:100%;height:auto" role="img" aria-label="Zeitstrahl der Lieferkette vom Wald zum Kunden" font-size="12" fill="var(--muted)" font-family="inherit">${g}</svg>`;
+  $('kChart').innerHTML = `<svg viewBox="0 0 ${GW} ${GH}" style="display:block;width:100%;height:auto" role="img" aria-label="Zeitstrahl der Lieferkette vom Wald bis zur Endanwender*in" font-size="12" fill="var(--muted)" font-family="inherit">${g}</svg>`;
   t = 0;
   K.forEach((k, i) => {
     const von = addDays(start, t), bis = addDays(start, t + k.tage);
