@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Croco – Lieferantengeführtes Lager (VMI)</title>
+<meta name="description" content="Croco: dynamische Disposition für ein lieferantengeführtes KVH-Lager. Aus den Verkäufen wird der Einschnitt im Sägewerk geplant.">
+<meta name="theme-color" content="#1f6b4f">
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/svg+xml" href="/logo.svg">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<style>
+/* Aufbau: Kopf, Reiter (Disposition, Einschnittplan, Verkäufe, Lager & Zulauf, Stammdaten), Impressum */
+:root{
+  --bg:#eef1ee; --panel:#ffffff; --ink:#1b2622; --muted:#5d6b65; --line:#d3dad5;
+  --accent:#1f6b4f; --accent-ink:#ffffff; --field:#f6f8f6;
+  --good:#1f7a45; --warn:#9a6700; --bad:#b3372b;
+  --good-bg:#e2f3e8; --warn-bg:#fbf0d2; --bad-bg:#fbe3df;
+  --s1:#2a78d6; --s2:#eb6834;
+  --p1:#7a5a3a; --p2:#eda100; --p3:#2a78d6; --p4:#1baf7a;
+  --display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --body:"Barlow","Segoe UI",Roboto,Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#141a18; --panel:#1d2522; --ink:#e7ece9; --muted:#9aa8a1; --line:#33403b;
+    --accent:#5fc49a; --accent-ink:#0f1a15; --field:#161d1a;
+    --good:#6fd093; --warn:#e6b84a; --bad:#f08576;
+    --good-bg:#1c3326; --warn-bg:#3a3016; --bad-bg:#3d201c;
+    --s1:#3987e5; --s2:#d95926;
+    --p1:#a57c53; --p2:#c98500; --p3:#3987e5; --p4:#199e70;
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.45}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 16px 40px;display:flex;flex-direction:column;gap:18px}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px}
+header img{width:52px;height:52px;flex:none}
+h1{font-family:var(--display);font-weight:700;font-size:34px;line-height:1.05;margin:0;letter-spacing:.01em;text-transform:uppercase}
+header p{margin:0;color:var(--muted)}
+h2{font-family:var(--display);font-weight:600;font-size:20px;margin:0;text-transform:uppercase;letter-spacing:.04em}
+h3{font-size:15px;margin:0;font-weight:600}
+nav{display:flex;flex-wrap:wrap;gap:6px}
+nav button{background:var(--panel);color:var(--ink);border:1px solid var(--line);font-weight:500}
+nav button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+.tab{display:flex;flex-direction:column;gap:18px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px 12px;align-items:end}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted);font-weight:500}
+input,select{font:inherit;color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:4px;padding:7px 8px;width:100%;min-width:0;font-variant-numeric:tabular-nums}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.hint{font-size:14px;color:var(--muted);margin:0}
+.hint b{color:var(--ink);font-weight:600}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+th{font-size:12px;font-weight:600;color:var(--muted);text-align:left;padding:0 8px 6px 0;white-space:nowrap;vertical-align:bottom}
+td{padding:6px 8px 6px 0;vertical-align:middle;border-top:1px solid var(--line)}
+td.r,th.r{text-align:right}
+td input{padding:5px 6px;min-width:70px}
+td:first-child{white-space:nowrap}
+tr.sel td{background:var(--field)}
+tr.click{cursor:pointer}
+button{font:inherit;font-weight:600;cursor:pointer;border-radius:4px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);padding:7px 14px}
+button.ghost{background:transparent;color:var(--accent)}
+button.small{padding:4px 10px;font-size:14px}
+button.del{background:transparent;border-color:transparent;color:var(--muted);padding:2px 8px;font-size:18px;line-height:1}
+button.del:hover{color:var(--bad)}
+.badge{display:inline-block;border-radius:4px;padding:2px 8px;font-size:13px;font-weight:600;white-space:nowrap}
+.badge.good{background:var(--good-bg);color:var(--good)}
+.badge.warn{background:var(--warn-bg);color:var(--warn)}
+.badge.bad{background:var(--bad-bg);color:var(--bad)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 14px}
+.kpi span{display:block;font-size:13px;color:var(--muted)}
+.kpi b{font-family:var(--display);font-size:30px;font-weight:700;line-height:1.1}
+.legend{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:13px;color:var(--muted)}
+.legend i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:6px}
+.legend i.box{height:10px}
+.chart{position:relative}
+.chart svg{display:block;width:100%;height:auto}
+.tip{position:absolute;pointer-events:none;background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:6px 8px;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,.15);white-space:nowrap;display:none}
+.phase{display:flex;height:14px;border-radius:4px;overflow:hidden;gap:2px;min-width:180px}
+.phase i{display:block;height:100%}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.imp{font-size:14px;color:var(--muted)}
+.imp address{font-style:normal}
+.imp a,.hint a{color:var(--accent)}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <img src="/logo.svg" alt="">
+    <div>
+      <h1>Croco</h1>
+      <p>Lieferantengeführtes Lager (VMI) für Konstruktionsvollholz – vom Verkauf zum Einschnitt</p>
+    </div>
+  </header>
+
+  <nav role="tablist" id="nav">
+    <button role="tab" data-tab="dispo">Disposition</button>
+    <button role="tab" data-tab="plan">Einschnittplan</button>
+    <button role="tab" data-tab="verkauf">Verkäufe</button>
+    <button role="tab" data-tab="lager">Lager &amp; Zulauf</button>
+    <button role="tab" data-tab="stamm">Stammdaten</button>
+  </nav>
+
+  <!-- Disposition -->
+  <section id="tab-dispo" class="tab">
+    <div class="kpis" id="kpis"></div>
+    <div class="panel">
+      <h2>Lagerbestand und Bedarf</h2>
+      <p class="hint">Zeile anklicken zeigt den Bestandsverlauf. Mengen in m³.</p>
+      <div class="scroll"><table id="dispoTable"></table></div>
+    </div>
+    <div class="panel" id="chartPanel">
+      <h2 id="chartTitle">Bestandsverlauf</h2>
+      <div class="legend">
+        <span><i style="background:var(--s1)"></i>ohne neuen Einschnitt</span>
+        <span><i style="background:var(--s2)"></i>mit vorgeschlagenem Einschnitt</span>
+        <span><i style="background:var(--muted)"></i>Sicherheitsbestand (gestrichelt)</span>
+      </div>
+      <div class="chart" id="chart"></div>
+      <p class="hint" id="chartNote"></p>
+    </div>
+  </section>
+
+  <!-- Einschnittplan -->
+  <section id="tab-plan" class="tab" hidden>
+    <div class="panel">
+      <h2>Einschnittplan für das Sägewerk</h2>
+      <p class="hint">Vorschläge aus der Disposition, nach Dringlichkeit. „Beauftragen“ übernimmt den Einschnitt in den Zulauf.</p>
+      <div class="legend">
+        <span><i class="box" style="background:var(--p1)"></i>Vorlauf und Einschnitt</span>
+        <span><i class="box" style="background:var(--p2)"></i>Trocknung</span>
+        <span><i class="box" style="background:var(--p3)"></i>KVH-Produktion</span>
+        <span><i class="box" style="background:var(--p4)"></i>Transport</span>
+      </div>
+      <div class="scroll"><table id="planTable"></table></div>
+      <p class="hint" id="planSum"></p>
+    </div>
+  </section>
+
+  <!-- Verkäufe -->
+  <section id="tab-verkauf" class="tab" hidden>
+    <div class="panel">
+      <h2>Verkauf erfassen</h2>
+      <form class="fields" id="saleForm">
+        <label class="f">Artikel<select id="saleArt" required></select></label>
+        <label class="f">Datum<input type="date" id="saleDate" required></label>
+        <label class="f">Menge (m³)<input type="number" id="saleQty" min="0.1" step="0.1" required></label>
+        <button type="submit">Verkauf buchen</button>
+      </form>
+      <p class="hint">Ein gebuchter Verkauf verringert den Lagerbestand und geht in die Bedarfsprognose ein.</p>
+    </div>
+    <div class="panel">
+      <h2>Verkäufe je Woche</h2>
+      <div class="scroll"><table id="weekTable"></table></div>
+    </div>
+    <div class="panel">
+      <h2>Letzte Buchungen</h2>
+      <div class="scroll"><table id="saleTable"></table></div>
+    </div>
+  </section>
+
+  <!-- Lager & Zulauf -->
+  <section id="tab-lager" class="tab" hidden>
+    <div class="panel">
+      <h2>Zulauf – vom Einschnitt bis ins Lager</h2>
+      <div class="scroll"><table id="pipeTable"></table></div>
+      <p class="hint">„Einlagern“ bucht die Menge in den Lagerbestand.</p>
+    </div>
+    <div class="panel">
+      <h2>Lagerbestand</h2>
+      <p class="hint">Bestand nach Inventur hier direkt korrigieren.</p>
+      <div class="scroll"><table id="stockTable"></table></div>
+    </div>
+  </section>
+
+  <!-- Stammdaten -->
+  <section id="tab-stamm" class="tab" hidden>
+    <div class="panel">
+      <h2>Zeiten und Regeln</h2>
+      <div class="fields" id="paramFields"></div>
+    </div>
+    <div class="panel">
+      <h2>Trocknungszeit nach Holzart und Stärke</h2>
+      <p class="hint">Es gilt die Zeile mit der kleinsten passenden Stärke. Die Werte sind Beispielwerte – bitte mit den Zeiten der eigenen Trockenkammern ersetzen.</p>
+      <div class="scroll"><table id="dryTable"></table></div>
+      <div class="row"><button class="ghost small" id="addDry">+ Zeile</button></div>
+    </div>
+    <div class="panel">
+      <h2>Artikel</h2>
+      <div class="scroll"><table id="artTable"></table></div>
+      <div class="row"><button class="ghost small" id="addArt">+ Artikel</button></div>
+    </div>
+    <div class="panel">
+      <h2>Daten</h2>
+      <p class="hint">Diese erste Version speichert die Daten nur in diesem Browser. Zum Start sind Beispieldaten geladen.</p>
+      <div class="row">
+        <button class="ghost small" id="exportBtn">Daten sichern (Datei)</button>
+        <button class="ghost small" id="resetBtn">Beispieldaten neu laden</button>
+      </div>
+    </div>
+  </section>
+
+  <footer class="imp" id="impressum">
+    <h2>Impressum</h2>
+    <address>
+      Stefan Vötter<br>
+      AT-5431 Kuchl, Kellau 198<br>
+      E-Mail: <a href="mailto:stefan@voetter.net">stefan@voetter.net</a><br>
+      Telefon: <a href="tel:+436642431314">0664 2431314</a><br>
+      Web: <a href="https://voetter.info">voetter.info</a>
+    </address>
+  </footer>
+</div>
+
+<script id="logic">
+/* ---------- Rechenkern (ohne Seite verwendbar) ---------- */
+const DAY = 86400000;
+function iso(d){ return new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,10); }
+function today0(){ const d = new Date(); d.setHours(0,0,0,0); return d; }
+function addDays(d, n){ const x = new Date(d); x.setDate(x.getDate() + n); return x; }
+function dayDiff(a, b){ return Math.round((a - b) / DAY); }
+function parseDate(s){ const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); }
+
+/* Trocknungszeit: kleinste Zeile der Holzart, deren Stärke reicht; sonst die größte. */
+function dryDays(state, art, staerke){
+  const rows = state.trocknung.filter(r => r.art === art).sort((a,b) => a.bis - b.bis);
+  if (!rows.length) return 0;
+  const hit = rows.find(r => staerke <= r.bis);
+  return (hit || rows[rows.length-1]).tage;
+}
+function leadTime(state, a){
+  const p = state.params;
+  const t = { vor: p.vorlauf, trock: dryDays(state, a.art, a.staerke), prod: p.produktion, trans: p.transport };
+  t.sum = t.vor + t.trock + t.prod + t.trans;
+  return t;
+}
+/* Tagesbedarf aus den Verkäufen der letzten n Wochen. */
+function dailyDemand(state, artId, now){
+  const days = state.params.prognoseWochen * 7;
+  const from = addDays(now, -days);
+  let sum = 0;
+  for (const v of state.verkaeufe){
+    if (v.artikelId !== artId) continue;
+    const d = parseDate(v.datum);
+    if (d > from && d <= now) sum += v.menge;
+  }
+  return sum / days;
+}
+/* Disposition für einen Artikel. */
+function plan(state, a, now){
+  const p = state.params, H = 180;
+  const d = dailyDemand(state, a.id, now);
+  const lt = leadTime(state, a);
+  const ss = d * p.sicherheitTage;
+  const arr = new Array(H + 1).fill(0);
+  let zulauf = 0;
+  for (const z of state.zulauf){
+    if (z.artikelId !== a.id) continue;
+    zulauf += z.menge;
+    const t = Math.min(H, Math.max(1, dayDiff(parseDate(z.ankunft), now)));
+    arr[t] += z.menge;
+  }
+  const base = [a.bestand];
+  for (let t = 1; t <= H; t++) base[t] = Math.max(0, base[t-1] - d) + arr[t];
+  let firstShort = -1;
+  for (let t = 0; t <= H; t++) if (d > 0 && base[t] < ss - 1e-9){ firstShort = t; break; }
+  const r = { a, d, week: d*7, lt, ss, zulauf, base, firstShort,
+              reichweite: d > 0 ? a.bestand / d : Infinity, vorschlag: null };
+  if (firstShort < 0){ r.status = 'ok'; r.withOrder = base; return r; }
+  const latest = firstShort - lt.sum;               // Tage bis zum spätesten Start
+  const start = Math.max(0, latest);
+  const ankunftT = start + lt.sum;
+  const ziel = ss + d * p.zyklusTage;
+  let menge = ziel - Math.max(0, base[Math.min(H, ankunftT)] );
+  const paket = a.paket > 0 ? a.paket : 1;
+  menge = Math.max(paket, Math.ceil(menge / paket - 1e-9) * paket);
+  const withOrder = [a.bestand];
+  for (let t = 1; t <= H; t++) withOrder[t] = Math.max(0, withOrder[t-1] - d) + arr[t] + (t === ankunftT ? menge : 0);
+  r.withOrder = withOrder;
+  r.vorschlag = {
+    menge, rundholz: menge / (p.ausbeute / 100),
+    start: addDays(now, start), ankunft: addDays(now, ankunftT), latest, ankunftT,
+    engpass: latest < 0 ? -latest : 0
+  };
+  r.status = latest < 0 ? 'engpass' : latest === 0 ? 'jetzt' : latest <= p.warnTage ? 'bald' : 'ok';
+  return r;
+}
+function planAll(state, now){ return state.artikel.map(a => plan(state, a, now)); }
+
+/* Beispieldaten, auf heute bezogen. */
+function demoState(now){
+  let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const s = {
+    params: { vorlauf: 5, produktion: 7, transport: 3, ausbeute: 55, zyklusTage: 21, prognoseWochen: 8, sicherheitTage: 10, warnTage: 14 },
+    trocknung: [
+      { art: 'Fichte', bis: 60, tage: 6 }, { art: 'Fichte', bis: 80, tage: 9 },
+      { art: 'Fichte', bis: 100, tage: 13 }, { art: 'Fichte', bis: 140, tage: 19 },
+      { art: 'Lärche', bis: 60, tage: 10 }, { art: 'Lärche', bis: 80, tage: 15 },
+      { art: 'Lärche', bis: 140, tage: 24 }
+    ],
+    artikel: [], verkaeufe: [], zulauf: [], nextId: 1
+  };
+  const arts = [
+    ['KVH Fichte 60 × 120', 'Fichte', 60, 120, 52, 3.5, 9],
+    ['KVH Fichte 60 × 160', 'Fichte', 60, 160, 21, 3.5, 11],
+    ['KVH Fichte 80 × 160', 'Fichte', 80, 160, 64, 4, 8],
+    ['KVH Fichte 80 × 200', 'Fichte', 80, 200, 17, 4, 7],
+    ['KVH Fichte 100 × 200', 'Fichte', 100, 200, 46, 4.5, 6],
+    ['KVH Fichte 120 × 240', 'Fichte', 120, 240, 30, 5, 3],
+    ['KVH Lärche 80 × 160', 'Lärche', 80, 160, 12, 4, 2]
+  ];
+  for (const [name, art, staerke, breite, bestand, paket, wk] of arts){
+    const id = s.nextId++;
+    s.artikel.push({ id, name, art, staerke, breite, bestand, paket });
+    for (let w = 0; w < 12; w++) for (let k = 0; k < 2; k++){
+      const menge = Math.round(wk / 2 * (0.6 + rnd() * 0.8) * 10) / 10;
+      s.verkaeufe.push({ id: s.nextId++, artikelId: id, datum: iso(addDays(now, -(w*7 + 1 + Math.floor(rnd()*6)))), menge });
+    }
+  }
+  const z = (artIdx, menge, startOffset) => {
+    const a = s.artikel[artIdx], lt = leadTime(s, a);
+    s.zulauf.push({ id: s.nextId++, artikelId: a.id, menge, start: iso(addDays(now, startOffset)),
+      vor: lt.vor, trock: lt.trock, prod: lt.prod, trans: lt.trans, ankunft: iso(addDays(now, startOffset + lt.sum)) });
+  };
+  z(1, 28, -12); z(3, 24, -6);
+  return s;
+}
+if (typeof module !== 'undefined') module.exports = { plan, planAll, demoState, leadTime, dryDays, dailyDemand, addDays, today0, iso };
+</script>
+
+<script id="ui">
+if (typeof document !== 'undefined') (function(){
+const KEY = 'croco-v1';
+const now = today0();
+let state, selId = null, tab = 'dispo';
+
+function load(){
+  try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && s.artikel && s.params) return s; } catch(e){}
+  return demoState(now);
+}
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(state)); } catch(e){} }
+state = load();
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const n1 = x => x.toLocaleString('de-AT', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const n0 = x => Math.round(x).toLocaleString('de-AT');
+const dt = d => d.toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+const dts = d => d.toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit' });
+const art = id => state.artikel.find(a => a.id === id);
+
+const STATUS = {
+  ok: ['good', '✓ in Ordnung'], bald: ['warn', '● bald einschneiden'],
+  jetzt: ['bad', '▲ jetzt einschneiden'], engpass: ['bad', '▲ Engpass droht']
+};
+const badge = st => `<span class="badge ${STATUS[st][0]}">${STATUS[st][1]}</span>`;
+const order = { engpass: 0, jetzt: 1, bald: 2, ok: 3 };
+
+function render(){
+  const plans = planAll(state, now);
+  renderDispo(plans); renderPlan(plans); renderSales(); renderLager(); renderStamm();
+}
+
+/* ----- Disposition ----- */
+function renderDispo(plans){
+  const cnt = st => plans.filter(p => p.status === st).length;
+  const bestand = state.artikel.reduce((s,a) => s + a.bestand, 0);
+  const zul = state.zulauf.reduce((s,z) => s + z.menge, 0);
+  const wk = plans.reduce((s,p) => s + p.week, 0);
+  $('kpis').innerHTML = [
+    ['Lagerbestand', n0(bestand) + ' m³'], ['Im Zulauf', n0(zul) + ' m³'],
+    ['Verkauf je Woche', n1(wk) + ' m³'],
+    ['Jetzt einschneiden', cnt('jetzt') + cnt('engpass')], ['Bald einschneiden', cnt('bald')]
+  ].map(k => `<div class="kpi"><span>${k[0]}</span><b>${k[1]}</b></div>`).join('');
+
+  const sorted = [...plans].sort((x,y) => order[x.status] - order[y.status] || x.reichweite - y.reichweite);
+  if (selId === null || !art(selId)) selId = sorted.length ? sorted[0].a.id : null;
+  $('dispoTable').innerHTML = `<thead><tr><th>Artikel</th><th class="r">Bestand</th><th class="r">Zulauf</th>
+    <th class="r">Verkauf/Woche</th><th class="r">Reichweite</th><th class="r">Durchlaufzeit</th><th>Lage</th>
+    <th>Einschnitt spätestens</th><th class="r">Vorschlag</th></tr></thead><tbody>` +
+    sorted.map(p => `<tr class="click ${p.a.id === selId ? 'sel' : ''}" data-id="${p.a.id}">
+      <td>${esc(p.a.name)}</td><td class="r">${n1(p.a.bestand)}</td><td class="r">${p.zulauf ? n1(p.zulauf) : '–'}</td>
+      <td class="r">${n1(p.week)}</td><td class="r">${isFinite(p.reichweite) ? n0(p.reichweite) + ' Tage' : '–'}</td>
+      <td class="r">${p.lt.sum} Tage</td><td>${badge(p.status)}</td>
+      <td>${p.vorschlag ? (p.vorschlag.latest <= 0 ? 'sofort' : dt(p.vorschlag.start)) : '–'}</td>
+      <td class="r">${p.vorschlag ? n1(p.vorschlag.menge) + ' m³' : '–'}</td></tr>`).join('') + '</tbody>';
+  $('dispoTable').querySelectorAll('tr.click').forEach(tr => tr.onclick = () => { selId = +tr.dataset.id; render(); });
+  const sel = plans.find(p => p.a.id === selId);
+  $('chartPanel').hidden = !sel;
+  if (sel) renderChart(sel);
+}
+
+function renderChart(p){
+  const N = 120, W = 760, Hh = 280, L = 46, R = 130, T = 40, B = 30;
+  const a = p.base.slice(0, N+1), b = p.withOrder.slice(0, N+1);
+  const max = Math.max(...a, ...b, p.ss, 1) * 1.08;
+  const x = t => L + t / N * (W - L - R), y = v => T + (1 - v / max) * (Hh - T - B);
+  const path = arr => arr.map((v,t) => (t ? 'L' : 'M') + x(t).toFixed(1) + ' ' + y(v).toFixed(1)).join('');
+  const step = max > 80 ? 20 : max > 40 ? 10 : max > 16 ? 5 : 2;
+  let g = '';
+  for (let v = 0; v <= max; v += step) g += `<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end">${v}</text>`;
+  for (let t = 0; t <= N; t += 30) g += `<text x="${x(t)}" y="${Hh-8}" text-anchor="${t === N ? 'end' : 'middle'}">${t ? dts(addDays(now,t)) : 'heute'}</text>`;
+  const v = p.vorschlag;
+  let marks = '', labels = '';
+  const sameEnd = !v || Math.abs(y(a[N]) - y(b[N])) < 14;
+  if (v){
+    const xs = x(Math.min(N, Math.max(0, v.latest))), xa = x(Math.min(N, v.ankunftT));
+    marks = `<line x1="${xs}" x2="${xs}" y1="${T-34}" y2="${Hh-B}" stroke="var(--muted)" stroke-dasharray="2 3"/>
+      <text x="${xs+4}" y="${T-24}">Einschnitt</text>` +
+      (v.ankunftT <= N ? `<line x1="${xa}" x2="${xa}" y1="${T-34}" y2="${Hh-B}" stroke="var(--muted)" stroke-dasharray="2 3"/>
+      <text x="${xa+4}" y="${T-10}">im Lager</text>` : '');
+    labels = `<text x="${W-R+8}" y="${y(b[N]) + (sameEnd ? -12 : 4)}" fill="var(--ink)">mit Einschnitt</text>`;
+  }
+  labels += `<text x="${W-R+8}" y="${y(a[N]) + 4}" fill="var(--ink)">ohne Einschnitt</text>`;
+  $('chartTitle').textContent = 'Bestandsverlauf – ' + p.a.name;
+  $('chart').innerHTML = `<svg viewBox="0 0 ${W} ${Hh}" role="img" aria-label="Voraussichtlicher Lagerbestand der nächsten ${N} Tage" font-size="12" fill="var(--muted)" font-family="inherit">
+    ${g}${marks}
+    <line x1="${L}" x2="${W-R}" y1="${y(p.ss)}" y2="${y(p.ss)}" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="6 4"/>
+    <path d="${path(a)}" fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round"/>
+    ${v ? `<path d="${path(b)}" fill="none" stroke="var(--s2)" stroke-width="2" stroke-linejoin="round"/>` : ''}
+    <line id="cross" y1="${T}" y2="${Hh-B}" stroke="var(--ink)" stroke-width="1" visibility="hidden"/>
+    <rect id="hit" x="${L}" y="${T}" width="${W-L-R}" height="${Hh-T-B}" fill="transparent"/>
+    ${labels}</svg><div class="tip" id="tip"></div>`;
+  const svg = $('chart').querySelector('svg'), tip = $('tip'), cross = svg.querySelector('#cross');
+  const move = e => {
+    const rc = svg.getBoundingClientRect(), px = (e.clientX - rc.left) / rc.width * W;
+    const t = Math.max(0, Math.min(N, Math.round((px - L) / (W - L - R) * N)));
+    cross.setAttribute('x1', x(t)); cross.setAttribute('x2', x(t)); cross.setAttribute('visibility', 'visible');
+    tip.innerHTML = `<b>${dt(addDays(now, t))}</b><br>ohne Einschnitt: ${n1(a[t])} m³` + (v ? `<br>mit Einschnitt: ${n1(b[t])} m³` : '');
+    tip.style.display = 'block';
+    const left = x(t) / W * rc.width;
+    tip.style.left = Math.min(left + 12, rc.width - tip.offsetWidth - 4) + 'px'; tip.style.top = '20px';
+  };
+  svg.querySelector('#hit').addEventListener('pointermove', move);
+  svg.querySelector('#hit').addEventListener('pointerleave', () => { tip.style.display = 'none'; cross.setAttribute('visibility', 'hidden'); });
+
+  const lt = p.lt;
+  let note = `Durchlaufzeit <b>${lt.sum} Tage</b>: Vorlauf und Einschnitt ${lt.vor}, Trocknung ${lt.trock} (${esc(p.a.art)}, ${p.a.staerke} mm), KVH-Produktion ${lt.prod}, Transport ${lt.trans}. Sicherheitsbestand <b>${n1(p.ss)} m³</b>. `;
+  if (!v) note += 'In den nächsten 180 Tagen ist kein Einschnitt nötig.';
+  else {
+    note += `Vorschlag: <b>${n1(v.menge)} m³</b> einschneiden (rund ${n0(v.rundholz)} fm Rundholz), ` +
+      (v.latest <= 0 ? '<b>sofort</b>' : `spätestens am <b>${dt(v.start)}</b>`) + `, im Lager am ${dt(v.ankunft)}.`;
+    if (v.engpass) note += ` Der Einschnitt kommt <b>${v.engpass} Tage zu spät</b>, der Sicherheitsbestand wird unterschritten.`;
+  }
+  $('chartNote').innerHTML = note;
+}
+
+/* ----- Einschnittplan ----- */
+function phaseBar(t){
+  const seg = (v, c, name) => v > 0 ? `<i style="flex:${v};background:var(--${c})" title="${name}: ${v} Tage"></i>` : '';
+  return `<div class="phase">${seg(t.vor,'p1','Vorlauf und Einschnitt')}${seg(t.trock,'p2','Trocknung')}${seg(t.prod,'p3','KVH-Produktion')}${seg(t.trans,'p4','Transport')}</div>`;
+}
+function renderPlan(plans){
+  const list = plans.filter(p => p.vorschlag).sort((x,y) => x.vorschlag.latest - y.vorschlag.latest);
+  if (!list.length){ $('planTable').innerHTML = '<tbody><tr><td>Derzeit ist kein Einschnitt nötig.</td></tr></tbody>'; $('planSum').textContent = ''; return; }
+  $('planTable').innerHTML = `<thead><tr><th>Artikel</th><th>Lage</th><th>Einschnitt-Start</th><th class="r">Menge KVH</th>
+    <th class="r">Rundholz</th><th>Ablauf</th><th class="r">Trocknung</th><th>Im Lager am</th><th></th></tr></thead><tbody>` +
+    list.map(p => { const v = p.vorschlag; return `<tr><td>${esc(p.a.name)}</td><td>${badge(p.status)}</td>
+      <td>${v.latest <= 0 ? 'sofort' : dt(v.start)}</td><td class="r">${n1(v.menge)} m³</td><td class="r">${n0(v.rundholz)} fm</td>
+      <td>${phaseBar(p.lt)}</td><td class="r">${p.lt.trock} Tage</td><td>${dt(v.ankunft)}</td>
+      <td><button class="small" data-order="${p.a.id}">Beauftragen</button></td></tr>`; }).join('') + '</tbody>';
+  const urgent = list.filter(p => p.status !== 'ok');
+  $('planSum').innerHTML = `Dringend (jetzt oder bald): <b>${n1(urgent.reduce((s,p) => s + p.vorschlag.menge, 0))} m³ KVH</b>, das sind rund <b>${n0(urgent.reduce((s,p) => s + p.vorschlag.rundholz, 0))} fm Rundholz</b> bei ${state.params.ausbeute} % Ausbeute.`;
+  $('planTable').querySelectorAll('[data-order]').forEach(b => b.onclick = () => {
+    const p = plans.find(q => q.a.id === +b.dataset.order), v = p.vorschlag, lt = p.lt;
+    state.zulauf.push({ id: state.nextId++, artikelId: p.a.id, menge: v.menge, start: iso(v.start),
+      vor: lt.vor, trock: lt.trock, prod: lt.prod, trans: lt.trans, ankunft: iso(v.ankunft) });
+    save(); render();
+  });
+}
+
+/* ----- Verkäufe ----- */
+function renderSales(){
+  const cur = $('saleArt').value;
+  $('saleArt').innerHTML = state.artikel.map(a => `<option value="${a.id}">${esc(a.name)}</option>`).join('');
+  if (cur) $('saleArt').value = cur;
+  if (!$('saleDate').value) $('saleDate').value = iso(now);
+  const W = 8, heads = [];
+  for (let w = W - 1; w >= 0; w--) heads.push(w === 0 ? 'letzte 7 Tage' : 'ab ' + dts(addDays(now, -(w+1)*7 + 1)));
+  $('weekTable').innerHTML = `<thead><tr><th>Artikel</th>${heads.map(h => `<th class="r">${h}</th>`).join('')}<th class="r">Ø Woche</th></tr></thead><tbody>` +
+    state.artikel.map(a => {
+      const sums = new Array(W).fill(0);
+      for (const v of state.verkaeufe){ if (v.artikelId !== a.id) continue;
+        const age = dayDiff(now, parseDate(v.datum)); if (age < 0 || age >= W*7) continue; sums[W - 1 - Math.floor(age/7)] += v.menge; }
+      return `<tr><td>${esc(a.name)}</td>${sums.map(s => `<td class="r">${n1(s)}</td>`).join('')}<td class="r"><b>${n1(sums.reduce((x,y) => x+y, 0)/W)}</b></td></tr>`;
+    }).join('') + '</tbody>';
+  const last = [...state.verkaeufe].sort((x,y) => y.datum.localeCompare(x.datum) || y.id - x.id).slice(0, 15);
+  $('saleTable').innerHTML = `<thead><tr><th>Datum</th><th>Artikel</th><th class="r">Menge</th><th></th></tr></thead><tbody>` +
+    last.map(v => `<tr><td>${dt(parseDate(v.datum))}</td><td>${esc((art(v.artikelId) || {name:'–'}).name)}</td><td class="r">${n1(v.menge)} m³</td>
+      <td class="r"><button class="del" title="Buchung löschen" data-del="${v.id}">×</button></td></tr>`).join('') + '</tbody>';
+  $('saleTable').querySelectorAll('[data-del]').forEach(b => b.onclick = () => {
+    const v = state.verkaeufe.find(q => q.id === +b.dataset.del), a = art(v.artikelId);
+    if (a) a.bestand = Math.round((a.bestand + v.menge) * 10) / 10;
+    state.verkaeufe = state.verkaeufe.filter(q => q !== v); save(); render();
+  });
+}
+$('saleForm').onsubmit = e => {
+  e.preventDefault();
+  const a = art(+$('saleArt').value), menge = +$('saleQty').value;
+  if (!a || !(menge > 0)) return;
+  state.verkaeufe.push({ id: state.nextId++, artikelId: a.id, datum: $('saleDate').value, menge });
+  a.bestand = Math.max(0, Math.round((a.bestand - menge) * 10) / 10);
+  $('saleQty').value = ''; save(); render();
+};
+
+/* ----- Lager & Zulauf ----- */
+function stage(z){
+  const t = dayDiff(now, parseDate(z.start));
+  if (t < 0) return 'Einschnitt geplant';
+  if (t < z.vor) return 'Vorlauf und Einschnitt';
+  if (t < z.vor + z.trock) return 'Trocknung';
+  if (t < z.vor + z.trock + z.prod) return 'KVH-Produktion';
+  if (t < z.vor + z.trock + z.prod + z.trans) return 'Transport';
+  return 'Lieferung fällig';
+}
+function renderLager(){
+  const list = [...state.zulauf].sort((x,y) => x.ankunft.localeCompare(y.ankunft));
+  $('pipeTable').innerHTML = list.length ? `<thead><tr><th>Artikel</th><th class="r">Menge</th><th>Einschnitt-Start</th><th>Stand</th><th>Ablauf</th><th>Im Lager am</th><th></th></tr></thead><tbody>` +
+    list.map(z => `<tr><td>${esc((art(z.artikelId) || {name:'–'}).name)}</td><td class="r">${n1(z.menge)} m³</td><td>${dt(parseDate(z.start))}</td>
+      <td>${stage(z)}</td><td>${phaseBar(z)}</td><td>${dt(parseDate(z.ankunft))}</td>
+      <td class="r" style="white-space:nowrap"><button class="small" data-in="${z.id}">Einlagern</button> <button class="del" title="Zulauf löschen" data-zdel="${z.id}">×</button></td></tr>`).join('') + '</tbody>'
+    : '<tbody><tr><td>Kein Zulauf unterwegs.</td></tr></tbody>';
+  $('pipeTable').querySelectorAll('[data-in]').forEach(b => b.onclick = () => {
+    const z = state.zulauf.find(q => q.id === +b.dataset.in), a = art(z.artikelId);
+    if (a) a.bestand = Math.round((a.bestand + z.menge) * 10) / 10;
+    state.zulauf = state.zulauf.filter(q => q !== z); save(); render();
+  });
+  $('pipeTable').querySelectorAll('[data-zdel]').forEach(b => b.onclick = () => {
+    state.zulauf = state.zulauf.filter(q => q.id !== +b.dataset.zdel); save(); render();
+  });
+  $('stockTable').innerHTML = `<thead><tr><th>Artikel</th><th>Holzart</th><th class="r">Querschnitt</th><th>Bestand (m³)</th></tr></thead><tbody>` +
+    state.artikel.map(a => `<tr><td>${esc(a.name)}</td><td>${esc(a.art)}</td><td class="r">${a.staerke} × ${a.breite} mm</td>
+      <td style="max-width:130px"><input type="number" min="0" step="0.1" value="${a.bestand}" data-stock="${a.id}" aria-label="Bestand ${esc(a.name)}"></td></tr>`).join('') + '</tbody>';
+  $('stockTable').querySelectorAll('[data-stock]').forEach(i => i.onchange = () => { art(+i.dataset.stock).bestand = Math.max(0, +i.value || 0); save(); render(); });
+}
+
+/* ----- Stammdaten ----- */
+const PARAMS = [
+  ['vorlauf', 'Vorlauf und Einschnitt im Sägewerk (Tage)'], ['produktion', 'Produktionszeit KVH-Werk (Tage)'],
+  ['transport', 'Transport ins Lager (Tage)'], ['ausbeute', 'Ausbeute Rundholz → KVH (%)'],
+  ['prognoseWochen', 'Bedarf aus den Verkäufen der letzten … Wochen'], ['sicherheitTage', 'Sicherheitsbestand (Tage Bedarf)'],
+  ['zyklusTage', 'Ein Einschnitt deckt … Tage Bedarf'], ['warnTage', '„Bald einschneiden“ ab … Tagen vorher']
+];
+function renderStamm(){
+  $('paramFields').innerHTML = PARAMS.map(([k, l]) => `<label class="f">${l}<input type="number" min="${k === 'ausbeute' || k === 'prognoseWochen' ? 1 : 0}" step="1" value="${state.params[k]}" data-param="${k}"></label>`).join('');
+  $('paramFields').querySelectorAll('[data-param]').forEach(i => i.onchange = () => {
+    const min = +i.min; state.params[i.dataset.param] = Math.max(min, Math.round(+i.value || min)); save(); render();
+  });
+  $('dryTable').innerHTML = `<thead><tr><th>Holzart</th><th>Stärke bis (mm)</th><th>Trocknungszeit (Tage)</th><th></th></tr></thead><tbody>` +
+    state.trocknung.map((r, i) => `<tr><td><input value="${esc(r.art)}" data-dry="${i}" data-k="art" aria-label="Holzart"></td>
+      <td><input type="number" min="1" value="${r.bis}" data-dry="${i}" data-k="bis" aria-label="Stärke bis"></td>
+      <td><input type="number" min="0" value="${r.tage}" data-dry="${i}" data-k="tage" aria-label="Trocknungszeit"></td>
+      <td class="r"><button class="del" title="Zeile löschen" data-drydel="${i}">×</button></td></tr>`).join('') + '</tbody>';
+  $('dryTable').querySelectorAll('[data-dry]').forEach(i => i.onchange = () => {
+    const r = state.trocknung[+i.dataset.dry], k = i.dataset.k;
+    r[k] = k === 'art' ? i.value.trim() : Math.max(0, +i.value || 0); save(); render();
+  });
+  $('dryTable').querySelectorAll('[data-drydel]').forEach(b => b.onclick = () => { state.trocknung.splice(+b.dataset.drydel, 1); save(); render(); });
+  $('artTable').innerHTML = `<thead><tr><th>Bezeichnung</th><th>Holzart</th><th>Stärke (mm)</th><th>Breite (mm)</th><th>Paket (m³)</th><th></th></tr></thead><tbody>` +
+    state.artikel.map(a => `<tr><td><input value="${esc(a.name)}" data-art="${a.id}" data-k="name" aria-label="Bezeichnung" style="min-width:180px"></td>
+      <td><input value="${esc(a.art)}" data-art="${a.id}" data-k="art" aria-label="Holzart"></td>
+      <td><input type="number" min="1" value="${a.staerke}" data-art="${a.id}" data-k="staerke" aria-label="Stärke"></td>
+      <td><input type="number" min="1" value="${a.breite}" data-art="${a.id}" data-k="breite" aria-label="Breite"></td>
+      <td><input type="number" min="0.1" step="0.1" value="${a.paket}" data-art="${a.id}" data-k="paket" aria-label="Paket"></td>
+      <td class="r"><button class="del" title="Artikel löschen" data-artdel="${a.id}">×</button></td></tr>`).join('') + '</tbody>';
+  $('artTable').querySelectorAll('[data-art]').forEach(i => i.onchange = () => {
+    const a = art(+i.dataset.art), k = i.dataset.k;
+    a[k] = (k === 'name' || k === 'art') ? i.value.trim() : Math.max(0, +i.value || 0); save(); render();
+  });
+  $('artTable').querySelectorAll('[data-artdel]').forEach(b => b.onclick = () => {
+    const id = +b.dataset.artdel;
+    state.artikel = state.artikel.filter(a => a.id !== id);
+    state.verkaeufe = state.verkaeufe.filter(v => v.artikelId !== id);
+    state.zulauf = state.zulauf.filter(z => z.artikelId !== id); save(); render();
+  });
+}
+$('addDry').onclick = () => { state.trocknung.push({ art: 'Fichte', bis: 160, tage: 22 }); save(); render(); };
+$('addArt').onclick = () => { state.artikel.push({ id: state.nextId++, name: 'Neuer Artikel', art: 'Fichte', staerke: 60, breite: 120, bestand: 0, paket: 3.5 }); save(); render(); };
+$('resetBtn').onclick = () => { state = demoState(now); selId = null; save(); render(); };
+$('exportBtn').onclick = () => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' }));
+  a.download = 'croco-daten-' + iso(now) + '.json'; a.click(); URL.revokeObjectURL(a.href);
+};
+
+/* ----- Reiter ----- */
+function showTab(t){
+  tab = t;
+  document.querySelectorAll('#nav button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === t));
+  ['dispo','plan','verkauf','lager','stamm'].forEach(k => $('tab-' + k).hidden = k !== t);
+}
+document.querySelectorAll('#nav button').forEach(b => b.onclick = () => showTab(b.dataset.tab));
+const h = location.hash.slice(1);
+showTab(['dispo','plan','verkauf','lager','stamm'].includes(h) ? h : 'dispo');
+render();
+})();
+</script>
+</body>
+</html>
