@@ -41,7 +41,7 @@ html,body{margin:0}
 body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.45}
 .wrap{max-width:1180px;margin:0 auto;padding:20px 16px 40px;display:flex;flex-direction:column;gap:18px}
 header{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px}
-header img{width:52px;height:52px;flex:none}
+header img{width:68px;height:68px;flex:none}
 h1{font-family:var(--display);font-weight:700;font-size:34px;line-height:1.05;margin:0;letter-spacing:.01em;text-transform:uppercase}
 header p{margin:0;color:var(--muted)}
 h2{font-family:var(--display);font-weight:600;font-size:20px;margin:0;text-transform:uppercase;letter-spacing:.04em}
@@ -78,6 +78,8 @@ button.del:hover{color:var(--bad)}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
 .kpi{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 14px}
 .kpi span{display:block;font-size:13px;color:var(--muted)}
+#exSteps .kpi span b{font:inherit;font-weight:600;color:var(--accent)}
+.kpi small{display:block;font-size:13px;color:var(--muted)}
 .kpi b{font-family:var(--display);font-size:30px;font-weight:700;line-height:1.1}
 .legend{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:13px;color:var(--muted)}
 .legend i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:6px}
@@ -105,6 +107,7 @@ button.del:hover{color:var(--bad)}
   </header>
 
   <nav role="tablist" id="nav">
+    <button role="tab" data-tab="beispiel">Beispiel</button>
     <button role="tab" data-tab="dispo">Disposition</button>
     <button role="tab" data-tab="plan">Einschnittplan</button>
     <button role="tab" data-tab="verkauf">Verkäufe</button>
@@ -112,8 +115,39 @@ button.del:hover{color:var(--bad)}
     <button role="tab" data-tab="stamm">Stammdaten</button>
   </nav>
 
+  <!-- Beispiel -->
+  <section id="tab-beispiel" class="tab" hidden>
+    <div class="panel">
+      <h2>Materialfluss – vom Rundholz bis zum Verkauf</h2>
+      <p class="hint">Das Material fließt von links nach rechts, die Verkaufsdaten fließen zurück und steuern den Einschnitt. Die Zahlen zeigen, wie viel KVH gerade in jeder Stufe liegt (Beispieldaten).</p>
+      <div class="scroll"><div id="flow" style="min-width:820px"></div></div>
+    </div>
+    <div class="panel">
+      <h2>Zeitplan – alle Einschnitte im Kalender</h2>
+      <div class="legend">
+        <span><i class="box" style="background:var(--p1)"></i>Vorlauf und Einschnitt</span>
+        <span><i class="box" style="background:var(--p2)"></i>Trocknung</span>
+        <span><i class="box" style="background:var(--p3)"></i>KVH-Produktion</span>
+        <span><i class="box" style="background:var(--p4)"></i>Transport</span>
+        <span>kräftig = beauftragt, blass mit Rahmen = Vorschlag</span>
+      </div>
+      <div class="scroll"><div id="gantt" style="min-width:820px"></div></div>
+    </div>
+    <div class="panel">
+      <h2>Rechenbeispiel für einen Artikel</h2>
+      <div class="fields"><label class="f">Artikel<select id="exArt"></select></label></div>
+      <h3>1. Verkäufe der letzten Wochen (m³ je Woche)</h3>
+      <div id="exBars"></div>
+      <h3>2. Vom Verkauf zum Einschnitt</h3>
+      <div class="kpis" id="exSteps"></div>
+      <h3>3. Weg des Materials mit Terminen</h3>
+      <div class="scroll"><table id="exPath"></table></div>
+      <p class="hint" id="exNote"></p>
+    </div>
+  </section>
+
   <!-- Disposition -->
-  <section id="tab-dispo" class="tab">
+  <section id="tab-dispo" class="tab" hidden>
     <div class="kpis" id="kpis"></div>
     <div class="panel">
       <h2>Lagerbestand und Bedarf</h2>
@@ -333,7 +367,7 @@ function demoState(now){
     s.zulauf.push({ id: s.nextId++, artikelId: a.id, menge, start: iso(addDays(now, startOffset)),
       vor: lt.vor, trock: lt.trock, prod: lt.prod, trans: lt.trans, ankunft: iso(addDays(now, startOffset + lt.sum)) });
   };
-  z(1, 28, -12); z(3, 24, -6);
+  z(1, 28, -12); z(3, 24, -6); z(4, 18, -2); z(2, 16, -22);
   return s;
 }
 if (typeof module !== 'undefined') module.exports = { plan, planAll, demoState, leadTime, dryDays, dailyDemand, addDays, today0, iso };
@@ -341,9 +375,9 @@ if (typeof module !== 'undefined') module.exports = { plan, planAll, demoState, 
 
 <script id="ui">
 if (typeof document !== 'undefined') (function(){
-const KEY = 'croco-v1';
+const KEY = 'croco-v2';
 const now = today0();
-let state, selId = null, tab = 'dispo';
+let state, selId = null, tab = 'beispiel';
 
 function load(){
   try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && s.artikel && s.params) return s; } catch(e){}
@@ -369,7 +403,7 @@ const order = { engpass: 0, jetzt: 1, bald: 2, ok: 3 };
 
 function render(){
   const plans = planAll(state, now);
-  renderDispo(plans); renderPlan(plans); renderSales(); renderLager(); renderStamm();
+  renderDispo(plans); renderBeispiel(plans); renderPlan(plans); renderSales(); renderLager(); renderStamm();
 }
 
 /* ----- Disposition ----- */
@@ -455,6 +489,129 @@ function renderChart(p){
   }
   $('chartNote').innerHTML = note;
 }
+
+
+/* ----- Beispiel: Materialfluss, Zeitplan, Rechenbeispiel ----- */
+function weekSums(aId, W){
+  const sums = new Array(W).fill(0);
+  for (const v of state.verkaeufe){ if (v.artikelId !== aId) continue;
+    const age = dayDiff(now, parseDate(v.datum)); if (age < 0 || age >= W*7) continue; sums[W - 1 - Math.floor(age/7)] += v.menge; }
+  return sums;
+}
+function renderBeispiel(plans){
+  const P = state.params;
+  /* Materialfluss */
+  const q = { saege: 0, trock: 0, prod: 0, trans: 0 };
+  for (const z of state.zulauf){
+    const st = stage(z);
+    if (st === 'Trocknung') q.trock += z.menge; else if (st === 'KVH-Produktion') q.prod += z.menge;
+    else if (st === 'Transport' || st === 'Lieferung fällig') q.trans += z.menge; else q.saege += z.menge;
+  }
+  const bestand = state.artikel.reduce((s,a) => s + a.bestand, 0);
+  const wk = plans.reduce((s,p) => s + p.week, 0);
+  const urgent = plans.filter(p => p.vorschlag && p.status !== 'ok');
+  const fm = urgent.reduce((s,p) => s + p.vorschlag.rundholz, 0);
+  const dry = state.trocknung.map(r => r.tage), dmin = dry.length ? Math.min(...dry) : 0, dmax = dry.length ? Math.max(...dry) : 0;
+  const boxes = [
+    ['Rundholz', n0(fm) + ' fm', 'Bedarf, dringend', 'muted'],
+    ['Sägewerk', n1(q.saege) + ' m³', 'Einschnitt: ' + P.vorlauf + ' Tage', 'p1'],
+    ['Trocknung', n1(q.trock) + ' m³', dmin + '–' + dmax + ' Tage je Stärke', 'p2'],
+    ['KVH-Werk', n1(q.prod) + ' m³', 'Produktion: ' + P.produktion + ' Tage', 'p3'],
+    ['Lager', n0(bestand) + ' m³', 'reicht ' + (wk > 0 ? n0(bestand / wk * 7) : '–') + ' Tage', 'accent'],
+    ['Verkauf', n1(wk) + ' m³', 'je Woche', 'muted']
+  ];
+  const BW = 132, BH = 92, GAP = 38, X0 = 10, Y0 = 70, FW = X0*2 + 6*BW + 5*GAP;
+  const bx = i => X0 + i * (BW + GAP);
+  let f = `<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs>`;
+  boxes.forEach((b, i) => {
+    f += `<rect x="${bx(i)}" y="${Y0}" width="${BW}" height="${BH}" rx="6" fill="var(--field)" stroke="var(--line)"/>
+      <rect x="${bx(i)}" y="${Y0}" width="${BW}" height="6" rx="3" fill="var(--${b[3]})"/>
+      <text x="${bx(i)+BW/2}" y="${Y0+28}" text-anchor="middle" font-weight="600" fill="var(--ink)" font-size="14">${b[0]}</text>
+      <text x="${bx(i)+BW/2}" y="${Y0+56}" text-anchor="middle" font-weight="700" fill="var(--ink)" font-size="22" font-family="var(--display)">${b[1]}</text>
+      <text x="${bx(i)+BW/2}" y="${Y0+78}" text-anchor="middle" font-size="10.5">${esc(b[2])}</text>`;
+    if (i < 5) f += `<line x1="${bx(i)+BW+4}" x2="${bx(i+1)-4}" y1="${Y0+BH/2}" y2="${Y0+BH/2}" stroke="var(--muted)" stroke-width="2" marker-end="url(#ah)"/>`;
+  });
+  const tx = bx(3) + BW + GAP/2;
+  f += `<text x="${tx}" y="${Y0+BH+18}" text-anchor="middle" font-size="11">Transport ${P.transport} Tage${q.trans ? ' · ' + n1(q.trans) + ' m³' : ''}</text>
+    <line x1="${tx}" x2="${tx}" y1="${Y0+BH/2+6}" y2="${Y0+BH+6}" stroke="var(--line)"/>`;
+  const sx = bx(1) + BW/2, vx = bx(5) + BW/2;
+  f += `<path d="M${vx} ${Y0-4} V32 H${sx} V${Y0-6}" fill="none" stroke="var(--muted)" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#ah)"/>
+    <text x="${(sx+vx)/2}" y="22" text-anchor="middle" font-size="13" fill="var(--ink)">Verkaufsdaten → Bedarf → Einschnittplan (der Lieferant steuert das Lager)</text>
+    <line x1="${sx}" x2="${sx}" y1="${Y0+BH+2}" y2="${Y0+BH+34}" stroke="var(--muted)" stroke-width="2" marker-end="url(#ah)"/>
+    <text x="${sx}" y="${Y0+BH+52}" text-anchor="middle" font-size="11">Nebenprodukte ${100 - P.ausbeute} %</text>
+    <text x="${sx}" y="${Y0+BH+66}" text-anchor="middle" font-size="11">(Sägespäne, Hackgut, Seitenware)</text>
+    <text x="${bx(0)+BW+GAP/2}" y="${Y0+BH/2-8}" text-anchor="middle" font-size="11">${P.ausbeute} %</text>`;
+  $('flow').innerHTML = `<svg viewBox="0 0 ${FW} ${Y0+BH+76}" style="display:block;width:100%;height:auto" role="img" aria-label="Materialfluss vom Rundholz über Sägewerk, Trocknung und KVH-Werk ins Lager und zum Verkauf" font-size="12" fill="var(--muted)" font-family="inherit">${f}</svg>`;
+
+  /* Zeitplan */
+  const rows = state.zulauf.map(z => ({ name: (art(z.artikelId) || {name:'–'}).name, menge: z.menge, s: dayDiff(parseDate(z.start), now), t: z, fix: true }))
+    .concat(plans.filter(p => p.vorschlag).map(p => ({ name: p.a.name, menge: p.vorschlag.menge, s: Math.max(0, p.vorschlag.latest), t: p.lt, fix: false })))
+    .sort((x,y) => x.s - y.s);
+  if (!rows.length) $('gantt').innerHTML = '<p class="hint">Keine Einschnitte geplant.</p>';
+  else {
+    const end = r => r.s + r.t.vor + r.t.trock + r.t.prod + r.t.trans;
+    const t0 = Math.min(-3, ...rows.map(r => r.s)) - 1, t1 = Math.max(...rows.map(end)) + 2;
+    const GL = 250, GR = 20, GW = 1000, RH = 26, GT = 26, GH = GT + rows.length * RH + 8;
+    const gx = t => GL + (t - t0) / (t1 - t0) * (GW - GL - GR);
+    let g = '';
+    const tick = Math.ceil((t1 - t0) / 9 / 7) * 7;
+    for (let t = Math.ceil(t0 / tick) * tick; t <= t1; t += tick) if (t !== 0)
+      g += `<line x1="${gx(t)}" x2="${gx(t)}" y1="${GT}" y2="${GH}" stroke="var(--line)"/><text x="${gx(t)}" y="16" text-anchor="middle">${dts(addDays(now, t))}</text>`;
+    rows.forEach((r, i) => {
+      const y = GT + i * RH + 5; let t = r.s;
+      g += `<text x="0" y="${y+12}" fill="var(--ink)" font-size="13">${esc(r.name)}</text><text x="${GL-10}" y="${y+12}" text-anchor="end">${n1(r.menge)} m³</text>`;
+      [['vor','p1','Vorlauf und Einschnitt'],['trock','p2','Trocknung'],['prod','p3','KVH-Produktion'],['trans','p4','Transport']].forEach(([k, c, nm]) => {
+        const w = r.t[k]; if (!(w > 0)) return;
+        g += `<rect x="${gx(t)+1}" y="${y}" width="${Math.max(1, gx(t+w)-gx(t)-2)}" height="16" rx="3" fill="var(--${c})" ${r.fix ? '' : `fill-opacity=".35" stroke="var(--${c})" stroke-width="1.5"`}><title>${esc(r.name)} – ${nm}: ${dt(addDays(now,t))} bis ${dt(addDays(now,t+w))} (${w} Tage)${r.fix ? '' : ' – Vorschlag'}</title></rect>`;
+        t += w;
+      });
+    });
+    g += `<line x1="${gx(0)}" x2="${gx(0)}" y1="${GT-6}" y2="${GH}" stroke="var(--ink)" stroke-width="1.5"/><text x="${gx(0)}" y="16" text-anchor="middle" fill="var(--ink)" font-weight="600">heute</text>`;
+    $('gantt').innerHTML = `<svg viewBox="0 0 ${GW} ${GH}" style="display:block;width:100%;height:auto" role="img" aria-label="Zeitplan der beauftragten und vorgeschlagenen Einschnitte" font-size="12" fill="var(--muted)" font-family="inherit">${g}</svg>`;
+  }
+
+  /* Rechenbeispiel */
+  $('exArt').innerHTML = state.artikel.map(a => `<option value="${a.id}">${esc(a.name)}</option>`).join('');
+  $('exArt').value = selId;
+  const p = plans.find(x => x.a.id === selId);
+  if (!p){ $('exBars').innerHTML = $('exSteps').innerHTML = $('exPath').innerHTML = $('exNote').innerHTML = ''; return; }
+  const W = P.prognoseWochen, sums = weekSums(p.a.id, W), sum = sums.reduce((x,y) => x+y, 0), avg = sum / W;
+  const CW = 760, CH = 190, CL = 10, CR = 110, CT = 22, CB = 26, mx = Math.max(...sums, avg, 1) * 1.1;
+  const bw = (CW - CL - CR) / W, cy = v => CT + (1 - v / mx) * (CH - CT - CB);
+  let c = `<line x1="${CL}" x2="${CW-CR}" y1="${cy(0)}" y2="${cy(0)}" stroke="var(--line)"/>`;
+  sums.forEach((v, i) => {
+    const x = CL + i * bw + bw * 0.2, w = Math.min(46, bw * 0.6), h = cy(0) - cy(v);
+    const from = addDays(now, -(W - i) * 7 + 1);
+    c += `<path d="M${x} ${cy(0)}V${cy(v)+Math.min(4,h)}q0 -${Math.min(4,h)} ${Math.min(4,h)} -${Math.min(4,h)}H${x+w-Math.min(4,h)}q${Math.min(4,h)} 0 ${Math.min(4,h)} ${Math.min(4,h)}V${cy(0)}z" fill="var(--s1)"><title>Woche ab ${dt(from)}: ${n1(v)} m³</title></path>
+      <text x="${x+w/2}" y="${cy(v)-5}" text-anchor="middle" fill="var(--ink)" stroke="var(--panel)" stroke-width="4" paint-order="stroke">${n1(v)}</text>
+      <text x="${x+w/2}" y="${CH-8}" text-anchor="middle">${i === W-1 ? 'letzte 7 T.' : 'ab ' + dts(from)}</text>`;
+  });
+  c += `<line x1="${CL}" x2="${CW-CR}" y1="${cy(avg)}" y2="${cy(avg)}" stroke="var(--ink)" stroke-width="1.5" stroke-dasharray="6 4"/>
+    <text x="${CW-CR+8}" y="${cy(avg)+4}" fill="var(--ink)">Ø ${n1(avg)} m³/Woche</text>`;
+  $('exBars').innerHTML = `<svg viewBox="0 0 ${CW} ${CH}" style="display:block;width:100%;max-width:${CW}px;height:auto" role="img" aria-label="Verkäufe je Woche" font-size="12" fill="var(--muted)" font-family="inherit">${c}</svg>`;
+  const v = p.vorschlag, lt = p.lt;
+  const steps = [
+    ['Verkauf in ' + W + ' Wochen', n1(sum) + ' m³', 'Summe der Buchungen'],
+    ['Bedarf je Tag', n1(p.d) + ' m³', n1(sum) + ' m³ ÷ ' + (W*7) + ' Tage'],
+    ['Sicherheitsbestand', n1(p.ss) + ' m³', P.sicherheitTage + ' Tage × ' + n1(p.d) + ' m³'],
+    ['Bestand + Zulauf', n1(p.a.bestand) + ' + ' + n1(p.zulauf) + ' m³', 'Lager reicht ' + (isFinite(p.reichweite) ? n0(p.reichweite) + ' Tage' : '–')],
+    ['Durchlaufzeit', lt.sum + ' Tage', lt.vor + ' + ' + lt.trock + ' + ' + lt.prod + ' + ' + lt.trans + ' Tage'],
+    ['Einschnitt spätestens', v ? (v.latest <= 0 ? 'sofort' : dt(v.start)) : '–', v ? 'Sicherheitsbestand erreicht am ' + dt(addDays(now, p.firstShort)) : 'in 180 Tagen nicht nötig'],
+    ['Menge KVH', v ? n1(v.menge) + ' m³' : '–', v ? 'deckt ' + P.zyklusTage + ' Tage, auf ganze Pakete' : ''],
+    ['Rundholz', v ? n0(v.rundholz) + ' fm' : '–', v ? n1(v.menge) + ' m³ ÷ ' + P.ausbeute + ' % Ausbeute' : '']
+  ];
+  $('exSteps').innerHTML = steps.map((k, i) => `<div class="kpi"><span><b>${i+1}</b> ${k[0]}</span><b>${k[1]}</b><small>${k[2]}</small></div>`).join('');
+  if (v){
+    let t = Math.max(0, v.latest);
+    const ph = [['Vorlauf und Einschnitt im Sägewerk', lt.vor, 'p1'], ['Trocknung (' + esc(p.a.art) + ', ' + p.a.staerke + ' mm)', lt.trock, 'p2'], ['Produktion im KVH-Werk', lt.prod, 'p3'], ['Transport ins Lager', lt.trans, 'p4']];
+    $('exPath').innerHTML = `<thead><tr><th>Stufe</th><th class="r">Dauer</th><th>von</th><th>bis</th><th>Anteil an der Durchlaufzeit</th></tr></thead><tbody>` +
+      ph.map(([nm, w, col]) => { const r = `<tr><td>${nm}</td><td class="r">${w} Tage</td><td>${dt(addDays(now,t))}</td><td>${dt(addDays(now,t+w))}</td>
+        <td><div class="phase" style="background:var(--field)"><i style="width:${(t - Math.max(0, v.latest)) / lt.sum * 100}%"></i><i style="width:${w / lt.sum * 100}%;background:var(--${col});border-radius:4px"></i></div></td></tr>`; t += w; return r; }).join('') +
+      `<tr><td><b>Im Lager</b></td><td class="r"><b>${lt.sum} Tage</b></td><td></td><td><b>${dt(v.ankunft)}</b></td><td>${n1(v.menge)} m³ ${esc(p.a.name)}</td></tr></tbody>`;
+    $('exNote').innerHTML = `Lage: ${badge(p.status)} ` + (v.engpass ? `Auch bei sofortigem Einschnitt wird der Sicherheitsbestand ${v.engpass} Tage lang unterschritten.` : '');
+  } else { $('exPath').innerHTML = ''; $('exNote').innerHTML = `Lage: ${badge(p.status)} Der Bestand reicht, es ist kein Einschnitt nötig.`; }
+}
+$('exArt').onchange = () => { selId = +$('exArt').value; render(); };
 
 /* ----- Einschnittplan ----- */
 function phaseBar(t){
@@ -598,11 +755,11 @@ $('exportBtn').onclick = () => {
 function showTab(t){
   tab = t;
   document.querySelectorAll('#nav button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === t));
-  ['dispo','plan','verkauf','lager','stamm'].forEach(k => $('tab-' + k).hidden = k !== t);
+  ['beispiel','dispo','plan','verkauf','lager','stamm'].forEach(k => $('tab-' + k).hidden = k !== t);
 }
 document.querySelectorAll('#nav button').forEach(b => b.onclick = () => showTab(b.dataset.tab));
 const h = location.hash.slice(1);
-showTab(['dispo','plan','verkauf','lager','stamm'].includes(h) ? h : 'dispo');
+showTab(['beispiel','dispo','plan','verkauf','lager','stamm'].includes(h) ? h : 'beispiel');
 render();
 })();
 </script>

@@ -1,7 +1,25 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="12" fill="#1f6b4f"/>
-  <path d="M8 26h40l8 6-8 6H8z" fill="#ecdcb8"/>
-  <path d="M8 32h6l3-4 3 4 3-4 3 4 3-4 3 4 3-4 3 4 3-4 3 4h8" fill="none" stroke="#1f6b4f" stroke-width="2.5" stroke-linejoin="round"/>
-  <circle cx="17" cy="20" r="5" fill="#ecdcb8"/><circle cx="17" cy="20" r="2" fill="#1b2622"/>
-  <rect x="8" y="44" width="14" height="10" rx="1.5" fill="#d6c193"/><rect x="25" y="44" width="14" height="10" rx="1.5" fill="#d6c193"/><rect x="42" y="44" width="14" height="10" rx="1.5" fill="#d6c193"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2a8a66"/><stop offset="1" stop-color="#0f3d2c"/></linearGradient>
+    <linearGradient id="sk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a6e36b"/><stop offset="1" stop-color="#5fc49a"/></linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="26" fill="url(#bg)"/>
+  <!-- Holzbalken (KVH) im Maul -->
+  <g transform="rotate(-8 70 70)">
+    <rect x="44" y="58" width="70" height="22" rx="3" fill="#ecdcb8"/>
+    <path d="M50 64h44M48 70h58M52 75h40" stroke="#c9ae78" stroke-width="1.6" stroke-linecap="round" fill="none"/>
+    <rect x="100" y="58" width="14" height="22" rx="3" fill="#d6c193"/>
+    <circle cx="107" cy="69" r="6.5" fill="none" stroke="#b39d6e" stroke-width="1.5"/><circle cx="107" cy="69" r="2.8" fill="none" stroke="#b39d6e" stroke-width="1.5"/>
+  </g>
+  <!-- Oberkiefer -->
+  <path d="M12 60c0-16 10-27 24-27 5-9 19-9 23 1 16 2 36 8 50 16 5 3 6 8 2 10-3 2-7-1-10 0l-6 4-52 4-22 2c-6 0-9-4-9-10z" fill="url(#sk)"/>
+  <!-- Zähne oben -->
+  <path d="M40 68l5 11 5-12 5 11 5-12 5 11 5-12 5 10 5-11 5 9 5-10z" fill="#fff"/>
+  <!-- Unterkiefer -->
+  <path d="M12 74c8 6 18 8 30 10l52 6c6 1 10 4 8 8-2 3-8 4-16 4H40c-18 0-28-10-28-28z" fill="#3f9f78"/>
+  <path d="M44 85l4-9 5 10 5-9 5 10 5-9 5 10 5-8 5 9 5-7 4 8z" fill="#fff"/>
+  <!-- Auge und Nase -->
+  <circle cx="45" cy="41" r="9" fill="#fff"/><ellipse cx="47" cy="41" rx="3.2" ry="6.5" fill="#12261e"/><circle cx="48.5" cy="38" r="1.6" fill="#fff"/>
+  <ellipse cx="103" cy="52" rx="3" ry="1.8" fill="#1f6b4f"/>
+  <path d="M22 50c2-4 5-7 9-9M66 40c8 2 16 4 24 8" stroke="#2f8f69" stroke-width="2.4" stroke-linecap="round" fill="none"/>
 </svg>
