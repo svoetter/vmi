@@ -1,5 +1,6 @@
 {
   "name": "vmi",
   "compatibility_date": "2026-10-01",
-  "assets": { "directory": "./public" }
+  "assets": { "directory": "./public" },
+  "routes": [{ "pattern": "vmi.voetter.work", "custom_domain": true }]
 }
