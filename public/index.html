@@ -133,6 +133,7 @@ td.r{white-space:nowrap}
   button{min-height:40px}
   button.small,button.del{min-height:36px}
   .kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  #cTable input{width:64px!important}
   .kpi{padding:10px}
   .kpi b{font-size:24px}
   .fields{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -142,7 +143,7 @@ td.r{white-space:nowrap}
   #dispoTable :is(th,td):nth-child(2),#dispoTable :is(th,td):nth-child(3),#dispoTable :is(th,td):nth-child(4),#dispoTable :is(th,td):nth-child(6),
   #planTable :is(th,td):nth-child(5),#planTable :is(th,td):nth-child(6),#planTable :is(th,td):nth-child(7),
   #pipeTable :is(th,td):nth-child(3),#pipeTable :is(th,td):nth-child(5),
-  #kTable :is(th,td):nth-child(2),#kTable :is(th,td):nth-child(7),
+  #cTable :is(th,td):nth-child(4),#cTable :is(th,td):nth-child(5),#kTable :is(th,td):nth-child(2),#kTable :is(th,td):nth-child(7),
   #exPath :is(th,td):nth-child(5){display:none}
   .chain{flex-direction:column;gap:6px}
   .station{flex:none;display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:2px 10px;text-align:left;align-items:center;justify-items:start;padding:10px 10px 10px 30px}
@@ -218,7 +219,7 @@ td.r{white-space:nowrap}
       <h2>Lieferkette – vom Wald zum Kunden</h2>
       <div class="fields">
         <label class="f">Weiterverarbeitung und Produkt<select id="scmVar"></select></label>
-        <label class="f">Bedarf beim Kunden (m³ fertiges Holz)<input type="number" id="scmMenge" min="0.1" step="0.1"></label>
+        <label class="f">Bedarf beim Kunden (m³ fertiges Holz)<input type="number" id="scmMenge" min="0.01" step="0.01"></label>
         <label class="f">Rechnen<select id="kMode"><option value="rueck">rückwärts vom Liefertermin</option><option value="vor">vorwärts ab Start im Wald</option></select></label>
         <label class="f"><span id="kDateLabel">Liefertermin</span><input type="date" id="kDate"></label>
       </div>
@@ -230,6 +231,14 @@ td.r{white-space:nowrap}
       <div class="kpis" id="kKpis"></div>
       <h3>Menge: Was muss in jeder Stufe hinein, damit beim Kunden genug ankommt?</h3>
       <div class="scroll"><div id="scmQty" style="min-width:640px"></div></div>
+      <h3>Kosten: Was kostet das Holz nach jeder Stufe?</h3>
+      <div class="legend">
+        <span><i class="box" style="background:var(--accent);opacity:.3"></i>bisher aufgelaufen</span>
+        <span><i class="box" style="background:var(--accent)"></i>neu in dieser Stufe (mit Transport danach)</span>
+      </div>
+      <div class="scroll"><div id="scmCost" style="min-width:640px"></div></div>
+      <div class="scroll"><table id="cTable"></table></div>
+      <p class="hint" id="cNote"></p>
       <h3>Zeit: Wann muss welche Stufe laufen?</h3>
       <div class="legend">
         <span><i class="box" style="background:var(--s1)"></i>Bearbeitung</span>
@@ -472,18 +481,18 @@ if (typeof module !== 'undefined') module.exports = { plan, planAll, demoState, 
 if (typeof document !== 'undefined') (function(){
 const KEY = 'croco-v2';
 const SCM_VAR = {
-  holzbau: ['Holzbau → Haus', 'Holzbau: Abbund und Vorfertigung', 15, 90, 1, 'Haus: Montage auf der Baustelle', 10],
-  tischlerei: ['Tischlerei → Möbel', 'Tischlerei: Zuschnitt und Fertigung', 20, 70, 1, 'Möbel: Lieferung und Einbau', 2],
-  industrie: ['Holzindustrie → andere Holzprodukte', 'Holzindustrie: z. B. KVH, Leimholz', 7, 85, 2, 'Holzprodukte: Übernahme beim Kunden', 1]
+  holzbau: ['Holzbau → Dachstuhl / Haus', 'Holzbau: Abbund und Vorfertigung', 15, 90, 1, 'Dachstuhl / Haus: Montage auf der Baustelle', 10, 280, 25, 320, 12],
+  tischlerei: ['Tischlerei → Tisch / Möbel', 'Tischlerei: Zuschnitt und Fertigung', 20, 70, 1, 'Tisch / Möbel: Lieferung und Aufbau', 2, 2500, 60, 150, 0.08],
+  industrie: ['Holzindustrie → andere Holzprodukte', 'Holzindustrie: z. B. KVH, Leimholz', 7, 85, 2, 'Holzprodukte: Übernahme beim Kunden', 1, 130, 15, 0, 40]
 };
 function scmDefault(v){
   const x = SCM_VAR[v];
-  return { variante: v, menge: 40, mode: 'rueck', date: iso(addDays(now, 70)), st: [
-    { name: 'Wald', sub: 'Holzernte und Rückung', tage: 12, ausbeute: 100, trans: 3, icon: 'wald' },
-    { name: 'Sägewerk', sub: 'Einschnitt zu Schnittholz', tage: 5, ausbeute: 55, trans: 1, icon: 'saege' },
-    { name: 'Holztrocknung', sub: 'Trockenkammer', tage: 9, ausbeute: 95, trans: 2, icon: 'trock' },
-    { name: 'Weiterverarbeitung', sub: x[1], tage: x[2], ausbeute: x[3], trans: x[4], icon: 'prod' },
-    { name: 'Kunde', sub: x[5], tage: x[6], ausbeute: 100, trans: 0, icon: 'haus' }
+  return { variante: v, menge: x[10], mode: 'rueck', date: iso(addDays(now, 70)), neben: 20, st: [
+    { name: 'Wald', sub: 'Holzernte und Rückung', tage: 12, ausbeute: 100, trans: 3, icon: 'wald', kost: 110, ktrans: 14 },
+    { name: 'Sägewerk', sub: 'Einschnitt zu Schnittholz', tage: 5, ausbeute: 55, trans: 1, icon: 'saege', kost: 35, ktrans: 6 },
+    { name: 'Holztrocknung', sub: 'Trockenkammer', tage: 9, ausbeute: 95, trans: 2, icon: 'trock', kost: 30, ktrans: 12 },
+    { name: 'Weiterverarbeitung', sub: x[1], tage: x[2], ausbeute: x[3], trans: x[4], icon: 'prod', kost: x[7], ktrans: x[8] },
+    { name: 'Kunde', sub: x[5], tage: x[6], ausbeute: 100, trans: 0, icon: 'haus', kost: x[9], ktrans: 0 }
   ] };
 }
 const now = today0();
@@ -498,7 +507,7 @@ function load(){
 }
 function save(){ try { localStorage.setItem(KEY, JSON.stringify(state)); } catch(e){} }
 state = load();
-if (!state.scm) state.scm = scmDefault('holzbau');
+if (!state.scm || state.scm.st[0].kost === undefined) state.scm = scmDefault(state.scm && SCM_VAR[state.scm.variante] ? state.scm.variante : 'holzbau');
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -740,12 +749,24 @@ const ICON = {
   haus: '<path d="M4 24L24 6l20 18" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/><path d="M9 23v19h30V23L24 10z" fill="currentColor" opacity=".6"/><rect x="20" y="29" width="8" height="13" fill="currentColor"/><rect x="33" y="8" width="5" height="9" fill="currentColor"/>'
 };
 function renderKette(){
+  const nq = x => x.toLocaleString('de-AT', x < 10 ? { minimumFractionDigits: 2, maximumFractionDigits: 2 } : { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const eur = x => (Math.abs(x) < 100 ? x.toLocaleString('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : n0(x)) + ' €';
   const S = state.scm, K = S.st, n = K.length;
   const total = K.reduce((a,k) => a + k.tage + k.trans, 0), trans = K.reduce((a,k) => a + k.trans, 0);
   /* Menge rückwärts: was aus jeder Stufe herauskommen muss */
   const out = new Array(n); out[n-1] = S.menge;
   for (let i = n - 1; i > 0; i--) out[i-1] = out[i] / Math.max(0.01, K[i].ausbeute / 100);
   const gesamt = K.slice(1).reduce((a,k) => a * k.ausbeute / 100, 1);
+
+  /* Kosten: Bearbeitung je Eingangsmenge, Transport je weitergegebener Menge */
+  const cs = [], ct = []; let cum = 0; const cumA = [];
+  K.forEach((k, i) => {
+    const inn = i === 0 ? out[0] : out[i-1];
+    cs[i] = inn * k.kost - (i === 1 ? (inn - out[i]) * S.neben : 0);
+    ct[i] = i < n - 1 ? out[i] * k.ktrans : 0;
+    cum += cs[i] + ct[i]; cumA[i] = cum;
+  });
+  const ctot = cum, cTrans = ct.reduce((a,b) => a + b, 0);
   const unit = i => i === 0 ? 'fm' : 'm³';
   const base = parseDate(S.date), start = S.mode === 'vor' ? base : addDays(base, -total), ende = addDays(start, total);
 
@@ -757,7 +778,7 @@ function renderKette(){
     <svg viewBox="0 0 48 48" aria-hidden="true">${ICON[k.icon] || ''}</svg><b>${esc(k.name)}</b><em>${esc(k.sub)}</em>
     <label><input type="number" min="0" step="1" value="${k.tage}" data-k="${i}" data-f="tage" aria-label="Dauer ${esc(k.name)} in Tagen"> Tage</label>
     ${i > 0 && i < n - 1 ? `<label><input type="number" min="1" max="100" step="1" value="${k.ausbeute}" data-k="${i}" data-f="ausbeute" aria-label="Ausbeute ${esc(k.name)} in Prozent"> % Ausbeute</label>` : '<label>&nbsp;</label>'}
-    <small>${i === n - 1 ? 'erhält' : 'liefert'} <b style="font-size:14px;color:var(--ink)">${n1(out[i])} ${unit(i)}</b></small></div>` +
+    <small>${i === n - 1 ? 'erhält' : 'liefert'} <b style="font-size:14px;color:var(--ink)">${nq(out[i])} ${unit(i)}</b></small></div>` +
     (i < n - 1 ? `<div class="link"><svg viewBox="0 0 48 48" aria-hidden="true">${ICON.lkw}</svg>
       <label><input type="number" min="0" step="1" value="${k.trans}" data-k="${i}" data-f="trans" aria-label="Transport von ${esc(k.name)} in Tagen"> Tage</label><span class="tl">Transport</span></div>` : '')).join('');
   $('chain').querySelectorAll('[data-k]').forEach(inp => inp.onchange = () => {
@@ -767,8 +788,10 @@ function renderKette(){
 
   $('kKpis').innerHTML = [
     ['Durchlaufzeit Wald → Kunde', total + ' Tage', 'rund ' + n1(total / 7) + ' Wochen, davon ' + trans + ' Tage Transport'],
-    ['Rundholz aus dem Wald', n0(out[0]) + ' fm', 'für ' + n1(S.menge) + ' m³ beim Kunden'],
+    ['Rundholz aus dem Wald', n0(out[0]) + ' fm', 'für ' + nq(S.menge) + ' m³ beim Kunden'],
     ['Ausbeute über die ganze Kette', n0(gesamt * 100) + ' %', 'aus 1 fm werden ' + gesamt.toLocaleString('de-AT', { maximumFractionDigits: 2 }) + ' m³'],
+    ['Kosten gesamt', eur(ctot), eur(ctot / S.menge) + ' je m³ beim Kunden'],
+    ['Anteil Rundholz an den Kosten', n0(cs[0] / ctot * 100) + ' %', eur(cs[0]) + ' Rundholz, ' + eur(cTrans) + ' Transport'],
     [S.mode === 'vor' ? 'Beim Kunden fertig am' : 'Start im Wald spätestens', dt(S.mode === 'vor' ? ende : start), S.mode === 'vor' ? 'Start ' + dt(start) : 'Liefertermin ' + dt(ende)]
   ].map(k => `<div class="kpi"><span>${k[0]}</span><b>${k[1]}</b><small>${k[2]}</small></div>`).join('');
 
@@ -779,10 +802,35 @@ function renderKette(){
     const y = 4 + i * QH, w = Math.max(3, out[i] / mx * (QW - QL - QR));
     const loss = i > 0 ? out[i-1] - out[i] : 0;
     q += `<text x="0" y="${y+15}" fill="var(--ink)" font-size="13">${i+1}. ${esc(k.name)}</text>
-      <path d="M${QL} ${y+QB}h${w-4}q4 0 4 4v12q0 4 -4 4h-${w-4}z" fill="var(--accent)"><title>${esc(k.name)}: ${n1(out[i])} ${unit(i)}</title></path>
-      <text x="${M ? QW : QL+w+8}" y="${y+15}" ${M ? 'text-anchor="end"' : ''} fill="var(--ink)">${n1(out[i])} ${unit(i)}${loss > 0.05 ? `<tspan fill="var(--muted)">  (−${n1(loss)}${M ? '' : ' in dieser Stufe'})</tspan>` : ''}</text>`;
+      <path d="M${QL} ${y+QB}h${w-4}q4 0 4 4v12q0 4 -4 4h-${w-4}z" fill="var(--accent)"><title>${esc(k.name)}: ${nq(out[i])} ${unit(i)}</title></path>
+      <text x="${M ? QW : QL+w+8}" y="${y+15}" ${M ? 'text-anchor="end"' : ''} fill="var(--ink)">${nq(out[i])} ${unit(i)}${loss > 0.05 ? `<tspan fill="var(--muted)">  (−${nq(loss)}${M ? '' : ' in dieser Stufe'})</tspan>` : ''}</text>`;
   });
   $('scmQty').innerHTML = `<svg viewBox="0 0 ${QW} ${n*QH+4}" style="display:block;width:100%;height:auto" role="img" aria-label="Holzmenge je Stufe der Lieferkette" font-size="12" fill="var(--muted)" font-family="inherit">${q}</svg>`;
+
+
+  /* Kosten-Grafik und Tabelle */
+  {
+    const CW = M ? 380 : 900, CL = M ? 0 : 190, CR = M ? 0 : 250, CH = M ? 46 : 30, CB = M ? 20 : 0;
+    let c = '', rowsC = '';
+    K.forEach((k, i) => {
+      const y = 4 + i * CH, prev = i ? cumA[i-1] : 0, w0 = prev / ctot * (CW - CL - CR), w1 = Math.max(2, (cumA[i] - prev) / ctot * (CW - CL - CR));
+      c += `<text x="0" y="${y+15}" fill="var(--ink)" font-size="13">${i+1}. ${esc(k.name)}</text>
+        ${w0 > 3 ? `<rect x="${CL}" y="${y+CB}" width="${w0-2}" height="20" rx="3" fill="var(--accent)" fill-opacity=".3"><title>Kosten bis zur vorigen Stufe: ${eur(prev)}</title></rect>` : ''}
+        <rect x="${CL+w0}" y="${y+CB}" width="${w1}" height="20" rx="3" fill="var(--accent)"><title>${esc(k.name)}: +${eur(cumA[i]-prev)}</title></rect>
+        <text x="${M ? CW : CL+w0+w1+8}" y="${y+15}" ${M ? 'text-anchor="end"' : ''} fill="var(--ink)">${eur(cumA[i])}<tspan fill="var(--muted)">  (+${eur(cumA[i]-prev)}${M ? '' : ' · ' + eur(cumA[i] / out[i]) + '/' + unit(i)})</tspan></text>`;
+      rowsC += `<tr><td>${i+1}. ${esc(k.name)}</td>
+        <td style="white-space:nowrap"><input type="number" min="0" step="1" value="${k.kost}" data-c="${i}" data-f="kost" style="width:84px" aria-label="Kostensatz ${esc(k.name)}"> €/${i === 0 ? 'fm' : 'm³'}</td>
+        <td style="white-space:nowrap">${i < n-1 ? `<input type="number" min="0" step="1" value="${k.ktrans}" data-c="${i}" data-f="ktrans" style="width:70px" aria-label="Transportkosten nach ${esc(k.name)}"> €/${unit(i)}` : '–'}</td>
+        <td class="r">${eur(cs[i])}</td><td class="r">${i < n-1 ? eur(ct[i]) : '–'}</td><td class="r"><b>${eur(cumA[i])}</b></td><td class="r">${eur(cumA[i] / out[i])}</td></tr>`;
+    });
+    $('scmCost').innerHTML = `<svg viewBox="0 0 ${CW} ${n*CH+4}" style="display:block;width:100%;height:auto" role="img" aria-label="Aufgelaufene Kosten je Stufe der Lieferkette" font-size="12" fill="var(--muted)" font-family="inherit">${c}</svg>`;
+    $('cTable').innerHTML = `<thead><tr><th>Stufe</th><th>Kostensatz<br>(je Eingangsmenge)</th><th>Transport<br>danach</th><th class="r">Kosten<br>Stufe</th><th class="r">Kosten<br>Transport</th><th class="r">aufgelaufen</th><th class="r">je ${'fm / m³'}</th></tr></thead><tbody>${rowsC}
+      <tr><td><b>Gesamt</b></td><td colspan="2" style="white-space:nowrap">Erlös Nebenprodukte: <input type="number" min="0" step="1" value="${S.neben}" id="scmNeben" style="width:70px" aria-label="Erlös Nebenprodukte in Euro je Kubikmeter"> €/m³</td><td></td><td class="r">${eur(cTrans)}</td><td class="r"><b>${eur(ctot)}</b></td><td class="r"><b>${eur(ctot / S.menge)}</b></td></tr></tbody>`;
+    $('cTable').querySelectorAll('[data-c]').forEach(inp => inp.onchange = () => { K[+inp.dataset.c][inp.dataset.f] = Math.max(0, +inp.value || 0); save(); render(); });
+    $('scmNeben').onchange = () => { S.neben = Math.max(0, +$('scmNeben').value || 0); save(); render(); };
+    const prod = S.variante === 'tischlerei' ? 'Tisch' : S.variante === 'holzbau' ? 'Dachstuhl' : 'Holzprodukt';
+    $('cNote').innerHTML = `Vom Rundholz (${eur(K[0].kost)} je fm) zum fertigen ${prod}: <b>${eur(ctot)}</b> für ${nq(S.menge)} m³, das sind <b>${eur(ctot / S.menge)} je m³</b>. Alle Kostensätze sind Beispielwerte ohne Gewinn, Gemeinkosten und Umsatzsteuer. Der Erlös für Nebenprodukte (Sägespäne, Hackgut) wird im Sägewerk abgezogen.`;
+  }
 
   /* Zeit-Grafik */
   const seg = [];
@@ -803,7 +851,7 @@ function renderKette(){
   K.forEach((k, i) => {
     const von = addDays(start, t), bis = addDays(start, t + k.tage);
     rows += `<tr><td>${i+1}. ${esc(k.name)}</td><td>${dt(von)}</td><td>${dt(bis)}</td><td class="r">${k.tage} Tage</td><td class="r">${i < n-1 ? k.trans + ' Tage' : '–'}</td>
-      <td class="r">${i > 0 && i < n-1 ? k.ausbeute + ' %' : '–'}</td><td class="r">${i > 0 ? n1(out[i-1]) + ' ' + unit(i-1) : '–'}</td><td class="r"><b>${n1(out[i])} ${unit(i)}</b></td></tr>`;
+      <td class="r">${i > 0 && i < n-1 ? k.ausbeute + ' %' : '–'}</td><td class="r">${i > 0 ? nq(out[i-1]) + ' ' + unit(i-1) : '–'}</td><td class="r"><b>${nq(out[i])} ${unit(i)}</b></td></tr>`;
     t += k.tage + k.trans;
   });
   $('kTable').innerHTML = `<thead><tr><th>Stufe</th><th>Beginn</th><th>Ende</th><th class="r">Dauer</th><th class="r">Transport danach</th><th class="r">Ausbeute</th><th class="r">Menge hinein</th><th class="r">Menge heraus</th></tr></thead><tbody>${rows}
@@ -813,10 +861,10 @@ function renderKette(){
 }
 $('kMode').onchange = () => { state.scm.mode = $('kMode').value; save(); render(); };
 $('kDate').onchange = () => { if ($('kDate').value){ state.scm.date = $('kDate').value; save(); render(); } };
-$('scmMenge').onchange = () => { state.scm.menge = Math.max(0.1, +$('scmMenge').value || 0.1); save(); render(); };
+$('scmMenge').onchange = () => { state.scm.menge = Math.max(0.01, +$('scmMenge').value || 0.01); save(); render(); };
 $('scmVar').onchange = () => {
   const v = $('scmVar').value, x = SCM_VAR[v], K = state.scm.st; state.scm.variante = v;
-  Object.assign(K[3], { sub: x[1], tage: x[2], ausbeute: x[3], trans: x[4] }); Object.assign(K[4], { sub: x[5], tage: x[6] }); save(); render();
+  Object.assign(K[3], { sub: x[1], tage: x[2], ausbeute: x[3], trans: x[4], kost: x[7], ktrans: x[8] }); Object.assign(K[4], { sub: x[5], tage: x[6], kost: x[9] }); state.scm.menge = x[10]; save(); render();
 };
 
 /* ----- Einschnittplan ----- */
