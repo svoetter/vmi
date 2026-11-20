@@ -221,7 +221,7 @@ td.r,#stoffTable td{white-space:nowrap}
   <section id="tab-beispiel" class="tab" hidden>
     <div class="panel">
       <h2>Materialfluss – vom Rundholz bis zum Endkunden</h2>
-      <p class="hint">Das Material fließt von links nach rechts, die Verkaufsdaten fließen zurück und steuern den Einschnitt. Die Zahlen zeigen, wie viel KVH gerade in jeder Stufe liegt (Beispieldaten). Nach dem Verkauf verarbeitet die Holzindustrie (Fertighausindustrie) oder ein Holzbaubetrieb das KVH; am Ende steht der Endkunde mit dem fertigen Haus.</p>
+      <p class="hint">Das Material fließt von der Forstwirtschaft bis zum Kunden, die Verbrauchsdaten fließen zurück und steuern den Einschnitt. Die Zahlen zeigen, wie viel Holz gerade in jeder Stufe liegt (Beispieldaten).</p>
       <div class="scroll"><div id="flow" style="min-width:820px"></div></div>
     </div>
     <div class="panel">
@@ -714,39 +714,39 @@ function renderBeispiel(plans){
   const fm = urgent.reduce((s,p) => s + p.vorschlag.rundholz, 0);
   const dry = state.trocknung.map(r => r.tage), dmin = dry.length ? Math.min(...dry) : 0, dmax = dry.length ? Math.max(...dry) : 0;
   const boxes = [
-    ['Rundholz', n0(fm) + ' fm', 'Bedarf, dringend', 'muted'],
-    ['Sägeindustrie', n1(q.saege) + ' m³', 'Einschnitt: ' + P.vorlauf + ' Tage', 'p1'],
-    ['Trocknung', n1(q.trock) + ' m³', dmin + '–' + dmax + ' Tage je Stärke', 'p2'],
-    ['KVH-Produktion', n1(q.prod) + ' m³', 'Holzindustrie: ' + P.produktion + ' Tage', 'p3'],
-    ['Lager', n0(bestand) + ' m³', 'reicht ' + (wk > 0 ? n0(bestand / wk * 7) : '–') + ' Tage', 'accent'],
-    ['Verkauf', n1(wk) + ' m³', 'je Woche', 'muted'],
-    ['Hausbau', ['Holzindustrie', '(Fertighausindustrie)', 'oder Holzbaubetrieb'], '', 'p3'],
-    ['Endkunde', 'Haus', 'fertiges Haus', 'accent']
+    ['Forstwirtschaft', '(Wald)', n0(fm) + ' fm', 'Rundholz, Bedarf dringend', 'muted'],
+    ['Sägeindustrie', 'bzw. Gewerbe', n1(q.saege) + ' m³', 'Schnittholz · Einschnitt ' + P.vorlauf + ' Tage', 'p1'],
+    ['Holzindustrie', 'bzw. Gewerbe', n1(q.trock) + ' m³', 'trockenes Schnittholz', 'p2'],
+    ['Holzindustrie', 'bzw. Gewerbe', n1(q.prod) + ' m³', 'KVH oder Produkte für Möbel', 'p3'],
+    ['Holzindustrie', 'oder Gewerbe', n1(wk) + ' m³', 'Holzbau bzw. Möbel · je Woche', 'p4'],
+    ['Kunde', '', ['Haus oder', 'Inneneinrichtung'], '', 'accent']
   ];
   const NB = boxes.length;
-  const BW = 120, BH = 92, GAP = 28, X0 = 10, Y0 = 70, FW = X0*2 + NB*BW + (NB-1)*GAP;
+  const BW = 164, BH = 104, GAP = 30, X0 = 10, Y0 = 70, FW = X0*2 + NB*BW + (NB-1)*GAP;
   const bx = i => X0 + i * (BW + GAP);
   let f = `<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs>`;
   boxes.forEach((b, i) => {
+    const cx = bx(i) + BW/2;
     f += `<rect x="${bx(i)}" y="${Y0}" width="${BW}" height="${BH}" rx="6" fill="var(--field)" stroke="var(--line)"/>
-      <rect x="${bx(i)}" y="${Y0}" width="${BW}" height="6" rx="3" fill="var(--${b[3]})"/>
-      <text x="${bx(i)+BW/2}" y="${Y0+28}" text-anchor="middle" font-weight="600" fill="var(--ink)" font-size="14">${b[0]}</text>
-      ${Array.isArray(b[1]) ? b[1].map((t, k) => `<text x="${bx(i)+BW/2}" y="${Y0+47+k*15}" text-anchor="middle" font-weight="${k === 1 ? 400 : 600}" fill="var(--ink)" font-size="11">${esc(t)}</text>`).join('') : `<text x="${bx(i)+BW/2}" y="${Y0+56}" text-anchor="middle" font-weight="700" fill="var(--ink)" font-size="22" font-family="var(--display)">${b[1]}</text>`}
-      <text x="${bx(i)+BW/2}" y="${Y0+78}" text-anchor="middle" font-size="10.5">${esc(b[2])}</text>`;
+      <rect x="${bx(i)}" y="${Y0}" width="${BW}" height="6" rx="3" fill="var(--${b[4]})"/>
+      <text x="${cx}" y="${Y0+26}" text-anchor="middle" font-weight="700" fill="var(--ink)" font-size="14">${i+1}. ${b[0]}</text>
+      <text x="${cx}" y="${Y0+41}" text-anchor="middle" font-size="11.5">${b[1]}</text>
+      ${Array.isArray(b[2]) ? b[2].map((t, k) => `<text x="${cx}" y="${Y0+62+k*18}" text-anchor="middle" font-weight="600" fill="var(--ink)" font-size="14">${esc(t)}</text>`).join('') : `<text x="${cx}" y="${Y0+70}" text-anchor="middle" font-weight="700" fill="var(--ink)" font-size="22" font-family="var(--display)">${b[2]}</text>`}
+      <text x="${cx}" y="${Y0+91}" text-anchor="middle" font-size="10.5">${esc(b[3])}</text>`;
     if (i < NB - 1) f += `<line x1="${bx(i)+BW+4}" x2="${bx(i+1)-4}" y1="${Y0+BH/2}" y2="${Y0+BH/2}" stroke="var(--muted)" stroke-width="2" marker-end="url(#ah)"/>`;
   });
   const tx = bx(3) + BW + GAP/2;
   f += `<text x="${tx}" y="${Y0+BH+18}" text-anchor="middle" font-size="11">Transport ${P.transport} Tage${q.trans ? ' · ' + n1(q.trans) + ' m³' : ''}</text>
     <line x1="${tx}" x2="${tx}" y1="${Y0+BH/2+6}" y2="${Y0+BH+6}" stroke="var(--line)"/>`;
-  const sx = bx(1) + BW/2, vx = bx(5) + BW/2;
+  const sx = bx(1) + BW/2, vx = bx(4) + BW/2;
   f += `<path d="M${vx} ${Y0-4} V32 H${sx} V${Y0-6}" fill="none" stroke="var(--muted)" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#ah)"/>
-    <text x="${(sx+vx)/2}" y="22" text-anchor="middle" font-size="13" fill="var(--ink)">Verkaufsdaten → Bedarf → Einschnittplan (der Lieferant steuert das Lager)</text>
+    <text x="${(sx+vx)/2}" y="22" text-anchor="middle" font-size="13" fill="var(--ink)">Verbrauchsdaten → Bedarf → Einschnittplan (der Lieferant steuert die Versorgung)</text>
     <line x1="${sx}" x2="${sx}" y1="${Y0+BH+2}" y2="${Y0+BH+34}" stroke="var(--muted)" stroke-width="2" marker-end="url(#ah)"/>
     <text x="${sx}" y="${Y0+BH+52}" text-anchor="middle" font-size="11">Nebenprodukte ${100 - P.ausbeute} %</text>
     <text x="${sx}" y="${Y0+BH+66}" text-anchor="middle" font-size="11">(Sägespäne, Hackgut, Seitenware)</text>
     <text x="${bx(0)+BW+GAP/2}" y="${Y0+BH/2-12}" text-anchor="middle" font-size="10">${P.ausbeute} %</text>`;
-  if (M) $('flow').innerHTML = `<div class="fl"><div class="ar">Verkaufsdaten → Bedarf → Einschnittplan<br>(der Lieferant steuert das Lager)</div>` + boxes.map((b, i) => `<div class="bx" style="--c:var(--${b[3]})"><b>${b[0]}</b>${Array.isArray(b[1]) ? `<small style="grid-column:1/-1;font-size:14px;color:var(--ink)">${esc(b[1].join(' '))}</small>` : `<strong>${b[1]}</strong>`}<small>${esc(b[2])}</small></div>` + (i < NB - 1 ? `<div class="ar">↓${i === 0 ? ' ' + P.ausbeute + ' % Ausbeute' : i === 1 ? ' Nebenprodukte ' + (100 - P.ausbeute) + ' % (Sägespäne, Hackgut, Seitenware)' : i === 3 ? ' Transport ' + P.transport + ' Tage' + (q.trans ? ' · ' + n1(q.trans) + ' m³' : '') : ''}</div>` : '')).join('') + '</div>';
-  else $('flow').innerHTML = `<svg viewBox="0 0 ${FW} ${Y0+BH+76}" style="display:block;width:100%;height:auto" role="img" aria-label="Materialfluss vom Rundholz über Sägewerk, Trocknung, KVH-Werk, Lager und Verkauf zur Holzindustrie oder zum Holzbaubetrieb und zum Endkunden mit dem fertigen Haus" font-size="12" fill="var(--muted)" font-family="inherit">${f}</svg>`;
+  if (M) $('flow').innerHTML = `<div class="fl"><div class="ar">Verbrauchsdaten → Bedarf → Einschnittplan<br>(der Lieferant steuert die Versorgung)</div>` + boxes.map((b, i) => `<div class="bx" style="--c:var(--${b[4]})"><b>${i+1}. ${b[0]} ${b[1]}</b>${Array.isArray(b[2]) ? `<small style="grid-column:1/-1;font-size:14px;color:var(--ink)">${esc(b[2].join(' '))}</small>` : `<strong>${b[2]}</strong>`}<small>${esc(b[3])}</small></div>` + (i < NB - 1 ? `<div class="ar">↓${i === 0 ? ' ' + P.ausbeute + ' % Ausbeute' : i === 1 ? ' Nebenprodukte ' + (100 - P.ausbeute) + ' % (Sägespäne, Hackgut, Seitenware)' : i === 3 ? ' Transport ' + P.transport + ' Tage' + (q.trans ? ' · ' + n1(q.trans) + ' m³' : '') : ''}</div>` : '')).join('') + '</div>';
+  else $('flow').innerHTML = `<svg viewBox="0 0 ${FW} ${Y0+BH+76}" style="display:block;width:100%;height:auto" role="img" aria-label="Materialfluss: Forstwirtschaft (Wald), Sägeindustrie bzw. Gewerbe (Schnittholz), Holzindustrie bzw. Gewerbe (trockenes Schnittholz), Holzindustrie bzw. Gewerbe (KVH oder Produkte für die Möbelherstellung), Holzindustrie oder Gewerbe (Holzbau bzw. Möbel), Kunde (Haus oder Inneneinrichtung)" font-size="12" fill="var(--muted)" font-family="inherit">${f}</svg>`;
 
   /* Zeitplan */
   const rows = state.zulauf.map(z => ({ name: (art(z.artikelId) || {name:'–'}).name, menge: z.menge, s: dayDiff(parseDate(z.start), now), t: z, fix: true }))
