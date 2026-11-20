@@ -220,8 +220,8 @@ td.r{white-space:nowrap}
   <!-- Beispiel -->
   <section id="tab-beispiel" class="tab" hidden>
     <div class="panel">
-      <h2>Materialfluss – vom Rundholz bis zum Verkauf</h2>
-      <p class="hint">Das Material fließt von links nach rechts, die Verkaufsdaten fließen zurück und steuern den Einschnitt. Die Zahlen zeigen, wie viel KVH gerade in jeder Stufe liegt (Beispieldaten).</p>
+      <h2>Materialfluss – vom Rundholz bis zum Endkunden</h2>
+      <p class="hint">Das Material fließt von links nach rechts, die Verkaufsdaten fließen zurück und steuern den Einschnitt. Die Zahlen zeigen, wie viel KVH gerade in jeder Stufe liegt (Beispieldaten). Nach dem Verkauf verarbeitet die Holzindustrie (Fertighausindustrie) oder ein Holzbaubetrieb das KVH; am Ende steht der Endkunde mit dem fertigen Haus.</p>
       <div class="scroll"><div id="flow" style="min-width:820px"></div></div>
     </div>
     <div class="panel">
@@ -706,18 +706,21 @@ function renderBeispiel(plans){
     ['Trocknung', n1(q.trock) + ' m³', dmin + '–' + dmax + ' Tage je Stärke', 'p2'],
     ['KVH-Werk', n1(q.prod) + ' m³', 'Produktion: ' + P.produktion + ' Tage', 'p3'],
     ['Lager', n0(bestand) + ' m³', 'reicht ' + (wk > 0 ? n0(bestand / wk * 7) : '–') + ' Tage', 'accent'],
-    ['Verkauf', n1(wk) + ' m³', 'je Woche', 'muted']
+    ['Verkauf', n1(wk) + ' m³', 'je Woche', 'muted'],
+    ['Hausbau', ['Holzindustrie', '(Fertighausindustrie)', 'oder Holzbaubetrieb'], '', 'p3'],
+    ['Endkunde', 'Haus', 'fertiges Haus', 'accent']
   ];
-  const BW = 132, BH = 92, GAP = 38, X0 = 10, Y0 = 70, FW = X0*2 + 6*BW + 5*GAP;
+  const NB = boxes.length;
+  const BW = 120, BH = 92, GAP = 28, X0 = 10, Y0 = 70, FW = X0*2 + NB*BW + (NB-1)*GAP;
   const bx = i => X0 + i * (BW + GAP);
   let f = `<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs>`;
   boxes.forEach((b, i) => {
     f += `<rect x="${bx(i)}" y="${Y0}" width="${BW}" height="${BH}" rx="6" fill="var(--field)" stroke="var(--line)"/>
       <rect x="${bx(i)}" y="${Y0}" width="${BW}" height="6" rx="3" fill="var(--${b[3]})"/>
       <text x="${bx(i)+BW/2}" y="${Y0+28}" text-anchor="middle" font-weight="600" fill="var(--ink)" font-size="14">${b[0]}</text>
-      <text x="${bx(i)+BW/2}" y="${Y0+56}" text-anchor="middle" font-weight="700" fill="var(--ink)" font-size="22" font-family="var(--display)">${b[1]}</text>
+      ${Array.isArray(b[1]) ? b[1].map((t, k) => `<text x="${bx(i)+BW/2}" y="${Y0+47+k*15}" text-anchor="middle" font-weight="${k === 1 ? 400 : 600}" fill="var(--ink)" font-size="11">${esc(t)}</text>`).join('') : `<text x="${bx(i)+BW/2}" y="${Y0+56}" text-anchor="middle" font-weight="700" fill="var(--ink)" font-size="22" font-family="var(--display)">${b[1]}</text>`}
       <text x="${bx(i)+BW/2}" y="${Y0+78}" text-anchor="middle" font-size="10.5">${esc(b[2])}</text>`;
-    if (i < 5) f += `<line x1="${bx(i)+BW+4}" x2="${bx(i+1)-4}" y1="${Y0+BH/2}" y2="${Y0+BH/2}" stroke="var(--muted)" stroke-width="2" marker-end="url(#ah)"/>`;
+    if (i < NB - 1) f += `<line x1="${bx(i)+BW+4}" x2="${bx(i+1)-4}" y1="${Y0+BH/2}" y2="${Y0+BH/2}" stroke="var(--muted)" stroke-width="2" marker-end="url(#ah)"/>`;
   });
   const tx = bx(3) + BW + GAP/2;
   f += `<text x="${tx}" y="${Y0+BH+18}" text-anchor="middle" font-size="11">Transport ${P.transport} Tage${q.trans ? ' · ' + n1(q.trans) + ' m³' : ''}</text>
@@ -728,9 +731,9 @@ function renderBeispiel(plans){
     <line x1="${sx}" x2="${sx}" y1="${Y0+BH+2}" y2="${Y0+BH+34}" stroke="var(--muted)" stroke-width="2" marker-end="url(#ah)"/>
     <text x="${sx}" y="${Y0+BH+52}" text-anchor="middle" font-size="11">Nebenprodukte ${100 - P.ausbeute} %</text>
     <text x="${sx}" y="${Y0+BH+66}" text-anchor="middle" font-size="11">(Sägespäne, Hackgut, Seitenware)</text>
-    <text x="${bx(0)+BW+GAP/2}" y="${Y0+BH/2-8}" text-anchor="middle" font-size="11">${P.ausbeute} %</text>`;
-  if (M) $('flow').innerHTML = `<div class="fl"><div class="ar">Verkaufsdaten → Bedarf → Einschnittplan<br>(der Lieferant steuert das Lager)</div>` + boxes.map((b, i) => `<div class="bx" style="--c:var(--${b[3]})"><b>${b[0]}</b><strong>${b[1]}</strong><small>${esc(b[2])}</small></div>` + (i < 5 ? `<div class="ar">↓${i === 0 ? ' ' + P.ausbeute + ' % Ausbeute' : i === 1 ? ' Nebenprodukte ' + (100 - P.ausbeute) + ' % (Sägespäne, Hackgut, Seitenware)' : i === 3 ? ' Transport ' + P.transport + ' Tage' + (q.trans ? ' · ' + n1(q.trans) + ' m³' : '') : ''}</div>` : '')).join('') + '</div>';
-  else $('flow').innerHTML = `<svg viewBox="0 0 ${FW} ${Y0+BH+76}" style="display:block;width:100%;height:auto" role="img" aria-label="Materialfluss vom Rundholz über Sägewerk, Trocknung und KVH-Werk ins Lager und zum Verkauf" font-size="12" fill="var(--muted)" font-family="inherit">${f}</svg>`;
+    <text x="${bx(0)+BW+GAP/2}" y="${Y0+BH/2-12}" text-anchor="middle" font-size="10">${P.ausbeute} %</text>`;
+  if (M) $('flow').innerHTML = `<div class="fl"><div class="ar">Verkaufsdaten → Bedarf → Einschnittplan<br>(der Lieferant steuert das Lager)</div>` + boxes.map((b, i) => `<div class="bx" style="--c:var(--${b[3]})"><b>${b[0]}</b>${Array.isArray(b[1]) ? `<small style="grid-column:1/-1;font-size:14px;color:var(--ink)">${esc(b[1].join(' '))}</small>` : `<strong>${b[1]}</strong>`}<small>${esc(b[2])}</small></div>` + (i < NB - 1 ? `<div class="ar">↓${i === 0 ? ' ' + P.ausbeute + ' % Ausbeute' : i === 1 ? ' Nebenprodukte ' + (100 - P.ausbeute) + ' % (Sägespäne, Hackgut, Seitenware)' : i === 3 ? ' Transport ' + P.transport + ' Tage' + (q.trans ? ' · ' + n1(q.trans) + ' m³' : '') : ''}</div>` : '')).join('') + '</div>';
+  else $('flow').innerHTML = `<svg viewBox="0 0 ${FW} ${Y0+BH+76}" style="display:block;width:100%;height:auto" role="img" aria-label="Materialfluss vom Rundholz über Sägewerk, Trocknung, KVH-Werk, Lager und Verkauf zur Holzindustrie oder zum Holzbaubetrieb und zum Endkunden mit dem fertigen Haus" font-size="12" fill="var(--muted)" font-family="inherit">${f}</svg>`;
 
   /* Zeitplan */
   const rows = state.zulauf.map(z => ({ name: (art(z.artikelId) || {name:'–'}).name, menge: z.menge, s: dayDiff(parseDate(z.start), now), t: z, fix: true }))
