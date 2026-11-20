@@ -225,8 +225,8 @@ td.r,#stoffTable td{white-space:nowrap}
       <div class="scroll"><div id="flow" style="min-width:820px"></div></div>
     </div>
     <div class="panel">
-      <h2>Zwei Linien: vom Wald zum Haus, vom Forst zum Möbel</h2>
-      <p class="hint">Beide Linien laufen nebeneinander: Die erste endet beim Endkunden mit dem fertigen Haus, die zweite mit dem Möbel.</p>
+      <h2>Ablauf: vom Wald zum Haus oder zum Innenausbau</h2>
+      <p class="hint">Beide Linien laufen nebeneinander und sind bis zur Holztrocknung gleich: Die erste führt über die KVH-Produktion zum Haus, die zweite über die Möbelfertigung zu Gegenständen für den Innenausbau.</p>
       <div id="simple2"></div>
     </div>
     <div class="panel">
@@ -559,17 +559,16 @@ if (typeof module !== 'undefined') module.exports = { plan, planAll, demoState, 
 if (typeof document !== 'undefined') (function(){
 const KEY = 'croco-v2';
 const SCM_VAR = {
-  holzbau: ['Holzbau → Dachstuhl / Haus', 'Holzbau: Abbund und Vorfertigung', 15, 90, 1, 'Dachstuhl / Haus: Montage auf der Baustelle', 10, 280, 25, 320, 12],
-  tischlerei: ['Tischlerei → Tisch / Möbel', 'Tischlerei: Zuschnitt und Fertigung', 20, 70, 1, 'Tisch / Möbel: Lieferung und Aufbau', 2, 2500, 60, 150, 0.08],
-  industrie: ['Holzindustrie → andere Holzprodukte', 'Holzindustrie: z. B. KVH, Leimholz', 7, 85, 2, 'Holzprodukte: Übernahme', 1, 130, 15, 0, 40]
+  holzbau: ['Holzindustrie: KVH-Produktion → Haus', 'Holzindustrie', 7, 88, 2, 'Haus', 10, 130, 25, 320, 12, 'KVH-Produktion'],
+  tischlerei: ['Holzindustrie / Gewerbe: Möbel → Innenausbau', 'Holzindustrie / Gewerbe', 20, 70, 1, 'Gegenstände für den Innenausbau', 2, 2500, 60, 150, 0.08, 'Möbelfertigung']
 };
 function scmDefault(v){
   const x = SCM_VAR[v];
-  return { variante: v, menge: x[10], mode: 'rueck', date: iso(addDays(now, 70)), neben: 20, st: [
-    { name: 'Wald', sub: 'Holzernte und Rückung', tage: 12, ausbeute: 100, trans: 3, icon: 'wald', kost: 110, ktrans: 14 },
-    { name: 'Sägewerk', sub: 'Einschnitt zu Schnittholz', tage: 5, ausbeute: 55, trans: 1, icon: 'saege', kost: 35, ktrans: 6 },
-    { name: 'Holztrocknung', sub: 'Trockenkammer', tage: 9, ausbeute: 95, trans: 2, icon: 'trock', kost: 30, ktrans: 12 },
-    { name: 'Weiterverarbeitung', sub: x[1], tage: x[2], ausbeute: x[3], trans: x[4], icon: 'prod', kost: x[7], ktrans: x[8] },
+  return { v: 2, variante: v, menge: x[10], mode: 'rueck', date: iso(addDays(now, 70)), neben: 20, st: [
+    { name: 'Forstwirtschaft', sub: 'Wald: Rundholz', tage: 12, ausbeute: 100, trans: 3, icon: 'wald', kost: 110, ktrans: 14 },
+    { name: 'Sägeindustrie', sub: 'Schnittholz', tage: 5, ausbeute: 55, trans: 1, icon: 'saege', kost: 35, ktrans: 6 },
+    { name: 'Holztrocknung', sub: 'Holzindustrie', tage: 9, ausbeute: 95, trans: 2, icon: 'trock', kost: 30, ktrans: 12 },
+    { name: x[11], sub: x[1], tage: x[2], ausbeute: x[3], trans: x[4], icon: 'prod', kost: x[7], ktrans: x[8] },
     { name: 'Endkunde', sub: x[5], tage: x[6], ausbeute: 100, trans: 0, icon: 'haus', kost: x[9], ktrans: 0 }
   ] };
 }
@@ -585,8 +584,7 @@ function load(){
 }
 function save(){ try { localStorage.setItem(KEY, JSON.stringify(state)); } catch(e){} }
 state = load();
-if (state.scm && state.scm.st[4] && /^(Kunde|Endanwender\*in)$/.test(state.scm.st[4].name)) state.scm.st[4].name = 'Endkunde';
-if (!state.scm || state.scm.st[0].kost === undefined) state.scm = scmDefault(state.scm && SCM_VAR[state.scm.variante] ? state.scm.variante : 'holzbau');
+if (!state.scm || state.scm.v !== 2) state.scm = scmDefault(state.scm && SCM_VAR[state.scm.variante] ? state.scm.variante : 'holzbau');
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -717,9 +715,9 @@ function renderBeispiel(plans){
   const dry = state.trocknung.map(r => r.tage), dmin = dry.length ? Math.min(...dry) : 0, dmax = dry.length ? Math.max(...dry) : 0;
   const boxes = [
     ['Rundholz', n0(fm) + ' fm', 'Bedarf, dringend', 'muted'],
-    ['Sägewerk', n1(q.saege) + ' m³', 'Einschnitt: ' + P.vorlauf + ' Tage', 'p1'],
+    ['Sägeindustrie', n1(q.saege) + ' m³', 'Einschnitt: ' + P.vorlauf + ' Tage', 'p1'],
     ['Trocknung', n1(q.trock) + ' m³', dmin + '–' + dmax + ' Tage je Stärke', 'p2'],
-    ['KVH-Werk', n1(q.prod) + ' m³', 'Produktion: ' + P.produktion + ' Tage', 'p3'],
+    ['KVH-Produktion', n1(q.prod) + ' m³', 'Holzindustrie: ' + P.produktion + ' Tage', 'p3'],
     ['Lager', n0(bestand) + ' m³', 'reicht ' + (wk > 0 ? n0(bestand / wk * 7) : '–') + ' Tage', 'accent'],
     ['Verkauf', n1(wk) + ' m³', 'je Woche', 'muted'],
     ['Hausbau', ['Holzindustrie', '(Fertighausindustrie)', 'oder Holzbaubetrieb'], '', 'p3'],
@@ -847,7 +845,7 @@ const P_TROCK = '<rect x="22" y="30" width="96" height="48" rx="2" fill="#d9dde2
     '<g fill="none" stroke="#f08a4b" stroke-width="2" stroke-linecap="round"><path d="M46 26c-3-4 3-6 0-10s3-6 0-9"/><path d="M70 26c-3-4 3-6 0-10s3-6 0-9"/><path d="M94 26c-3-4 3-6 0-10s3-6 0-9"/></g>' +
     '<rect x="126" y="50" width="12" height="28" rx="2" fill="#aab1b9"/><circle cx="132" cy="58" r="3.5" fill="#fff"/><path d="M132 58l2-2" stroke="#c9684a" stroke-width="1"/><text x="132" y="72" text-anchor="middle" font-size="5" fill="#33383f" font-family="sans-serif">15 %</text>';
 const P_HALLE = '<path d="M4 78V42l38-18 38 18v36z" fill="#e9dcc4" stroke="#b98a55" stroke-width="1.5"/><path d="M0 44l42-20 42 20" fill="none" stroke="#8a6238" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="14" y="50" width="56" height="28" fill="#5b4636"/>' +
-    '<g stroke="#e3c08a" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" fill="none"><path d="M22 74l20-20 20 20z"/><path d="M42 54v20M32 64l10 10M52 64L42 74"/></g><rect x="28" y="36" width="28" height="8" rx="1.5" fill="#fff"/><text x="42" y="42.2" text-anchor="middle" font-size="5.6" font-weight="700" fill="#5b4636" font-family="sans-serif">HOLZBAU</text>';
+    '<g stroke="#e3c08a" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" fill="none"><path d="M22 74l20-20 20 20z"/><path d="M42 54v20M32 64l10 10M52 64L42 74"/></g><rect x="19" y="36" width="46" height="8" rx="1.5" fill="#fff"/><text x="42" y="42" text-anchor="middle" font-size="5" font-weight="700" fill="#5b4636" font-family="sans-serif">HOLZINDUSTRIE</text>';
 const P_HAUS = '<rect x="52" y="48" width="66" height="34" fill="#f4ead6"/><rect x="52" y="48" width="66" height="34" fill="none" stroke="#b98a55" stroke-width="1.5"/>' +
     '<path d="M44 50L85 20l41 30z" fill="#c9684a"/><g stroke="#b98a55" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"><path d="M85 20l41 30M85 20v30M100 31l-15 19M113 41l-28 9"/></g><path d="M44 50L85 20v30z" fill="#a9523a"/>' +
     '<rect x="62" y="58" width="12" height="24" fill="#8a6238"/><circle cx="71.5" cy="71" r="1" fill="#ffe08a"/><rect x="88" y="58" width="20" height="13" fill="#cfe8f5" stroke="#fff" stroke-width="1.5"/><path d="M98 58v13" stroke="#fff" stroke-width="1.2"/>' +
@@ -877,13 +875,12 @@ const PERSON = (x, y, shirt, hair, long) => `<path d="M${x-3} ${y}v-12M${x+3} ${
 
 /* Einfache Grafik mit zwei parallelen Linien: Wald → Haus und Forst → Möbel */
 function simpleFlow(variante, mid){
+  const start = [['Forstwirtschaft', ['Wald: Rundholz'], 'wald'], ['Sägeindustrie', ['Schnittholz'], 'saege'], ['Holzindustrie', ['Holztrocknung'], 'trock']];
   const lines = [
-    { titel: 'Linie 1 – vom Wald bis zum Haus', on: variante === 'holzbau', n: [
-      ['Wald', ['Holzernte'], 'wald'], ['Sägewerk', ['Einschnitt'], 'saege'], ['Trocknung', ['Trockenkammer'], 'trock'],
-      ['Holzindustrie', ['(Fertighausindustrie)', 'oder Holzbaubetrieb'], 'prod'], ['Endkunde', ['fertiges Haus'], 'haus']] },
-    { titel: 'Linie 2 – vom Forst bis zum Möbel', on: variante === 'tischlerei', n: [
-      ['Forst', ['Holzernte'], 'wald'], ['Sägewerk', ['Einschnitt'], 'saege'], ['Trocknung', ['Trockenkammer'], 'trock'],
-      ['Holzindustrie', ['oder Tischler'], 'prod'], ['Endkunde', ['das Möbel'], 'moebel']] }
+    { titel: 'Linie 1 – vom Wald bis zum Haus', kurz: 'Linie 1: Haus', on: variante === 'holzbau', n: [...start,
+      ['Holzindustrie', ['KVH-Produktion'], 'prod'], ['Endkunde', ['Haus'], 'haus']] },
+    { titel: 'Linie 2 – vom Wald bis zum Innenausbau', kurz: 'Linie 2: Innenausbau', on: variante === 'tischlerei', n: [...start,
+      ['Holzindustrie / Gewerbe', ['Möbel'], 'prod'], ['Endkunde', ['Gegenstände für', 'den Innenausbau'], 'moebel']] }
   ];
   const node = (cx, cy, r, icon, on) => `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${on ? 'var(--good-bg)' : 'var(--field)'}" stroke="var(--accent)" stroke-width="${on ? 4 : 2.5}"/>
     <g transform="translate(${cx - r*0.62} ${cy - r*0.62}) scale(${r*1.24/48})" style="color:var(--accent)">${ICON[icon]}</g>`;
@@ -904,17 +901,17 @@ function simpleFlow(variante, mid){
   } else {
     W = 360; H = 736; const xs = [92, 268], r = 32, PI = 142;
     lines.forEach((L, k) => {
-      g += `<text x="${xs[k]}" y="18" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)">${k ? 'Linie 2: Möbel' : 'Linie 1: Haus'}</text>`;
+      g += `<text x="${xs[k]}" y="18" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)">${L.kurz}</text>`;
       L.n.forEach((m, i) => {
         const y = 62 + i * PI;
-        g += node(xs[k], y, r, m[2], L.on) + `<text x="${xs[k]}" y="${y+r+17}" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)">${m[0]}</text>` +
+        g += node(xs[k], y, r, m[2], L.on) + `<text x="${xs[k]}" y="${y+r+17}" text-anchor="middle" font-size="13" font-weight="700" fill="var(--ink)">${m[0]}</text>` +
           m[1].map((t, j) => `<text x="${xs[k]}" y="${y+r+32+j*13}" text-anchor="middle" font-size="11.5">${t}</text>`).join('');
         if (i < 4) g += arrow(`M${xs[k]} ${y+r+(m[1].length > 1 ? 52 : 40)}V${y+PI-r-10}`);
       });
     });
     g += `<path d="M180 30V726" stroke="var(--line)"/>`;
   }
-  return `<svg viewBox="0 0 ${W} ${H}" style="display:block;width:100%;height:auto;max-width:${M ? 380 : 1000}px;margin:0 auto" role="img" aria-label="Zwei parallele Linien. Linie 1: Wald, Sägewerk, Trocknung, Holzindustrie (Fertighausindustrie) oder Holzbaubetrieb, Endkunde mit fertigem Haus. Linie 2: Forst, Sägewerk, Trocknung, Holzindustrie oder Tischler, das Möbel beim Endkunden." font-size="12.5" fill="var(--muted)" font-family="inherit">${g}</svg>`;
+  return `<svg viewBox="0 0 ${W} ${H}" style="display:block;width:100%;height:auto;max-width:${M ? 380 : 1000}px;margin:0 auto" role="img" aria-label="Zwei parallele Linien. Linie 1: Forstwirtschaft (Rundholz), Sägeindustrie (Schnittholz), Holzindustrie (Holztrocknung), Holzindustrie (KVH-Produktion), Endkunde (Haus). Linie 2: Forstwirtschaft, Sägeindustrie, Holztrocknung, Holzindustrie oder Gewerbe (Möbel), Endkunde (Gegenstände für den Innenausbau)." font-size="12.5" fill="var(--muted)" font-family="inherit">${g}</svg>`;
 }
 /* Stoffstrom: Ausbeute je Produktionsschritt und wohin die Nebenströme gehen (Anteile der Nebenströme sind Beispielwerte) */
 const NEBEN = {
@@ -924,12 +921,12 @@ const NEBEN = {
 };
 function stoffstrom(K, out, nq){
   const q = [out[0], out[1], out[2], out[3]], q0 = q[0], pct = x => n0(x / q0 * 100) + ' %';
-  const haupt = ['Rundholz', 'Schnittholz, frisch', 'Schnittholz, trocken', K[4].sub.split(':')[0].split(' / ')[0] === 'Holzprodukte' ? 'Holzprodukt' : 'Fertiges Produkt'];
+  const haupt = ['Rundholz', 'Schnittholz, frisch', 'Schnittholz, trocken', K[3].name === 'KVH-Produktion' ? 'KVH' : 'Möbel'];
   const W = 1000, HH = 150, NW = 14, xs = [30, 270, 510, 750], top = 78, h = x => Math.max(2, x / q0 * HH);
   const band = (x0, a0, b0, x1, a1, b1, col, op) => { const m = (x0 + x1) / 2; return `<path d="M${x0} ${a0}C${m} ${a0} ${m} ${a1} ${x1} ${a1}V${b1}C${m} ${b1} ${m} ${b0} ${x0} ${b0}z" fill="var(--${col})" fill-opacity="${op}"/>`; };
-  let g = '', gb = '', rows = `<tr><td>Forst</td><td><b>${haupt[0]}</b></td><td class="r">100 %</td><td class="r">${nq(q0)} fm</td><td>Sägewerk</td></tr>`, maxY = top + HH;
-  const schritt = ['Sägewerk', 'Trocknung', K[3].name];
-  const ziel = ['Trocknung', K[3].name, 'Endkunde'];
+  let g = '', gb = '', rows = `<tr><td>${esc(K[0].name)}</td><td><b>${haupt[0]}</b></td><td class="r">100 %</td><td class="r">${nq(q0)} fm</td><td>${esc(K[1].name)}</td></tr>`, maxY = top + HH;
+  const schritt = [K[1].name, K[2].name, K[3].name];
+  const ziel = [K[2].name, K[3].name, 'Endkunde: ' + K[4].sub];
   g += `<rect x="${xs[0]}" y="${top}" width="${NW}" height="${h(q0)}" rx="2" fill="var(--accent)"/><text x="${xs[0]}" y="${top-24}" font-weight="700" fill="var(--ink)" font-size="13">${haupt[0]}</text><text x="${xs[0]}" y="${top-8}">${nq(q0)} fm · 100 %</text>`;
   for (let j = 0; j < 3; j++){
     const x0 = xs[j] + NW, x1 = xs[j+1], hm = h(q[j+1]);
@@ -952,7 +949,7 @@ function stoffstrom(K, out, nq){
     }
   }
   const xe = xs[3] + NW;
-  g += band(xe, top, top + h(q[3]), 960, top, top + h(q[3]), 'accent', 0.35) + `<path d="M960 ${top-4}l14 ${h(q[3])/2+4}l-14 ${h(q[3])/2+4}z" fill="var(--accent)"/><text x="${(xe+960)/2}" y="18" text-anchor="middle" font-weight="700" fill="var(--ink)" font-size="14">Endkunde</text><text x="${(xe+960)/2}" y="34" text-anchor="middle">${esc(K[4].sub.split(':')[0])}</text>`;
+  g += band(xe, top, top + h(q[3]), 960, top, top + h(q[3]), 'accent', 0.35) + `<path d="M960 ${top-4}l14 ${h(q[3])/2+4}l-14 ${h(q[3])/2+4}z" fill="var(--accent)"/><text x="${(xe+960)/2}" y="18" text-anchor="middle" font-weight="700" fill="var(--ink)" font-size="14">Endkunde</text><text x="${(xe+960)/2}" y="34" text-anchor="middle">${esc(K[4].sub.length > 20 ? 'Innenausbau' : K[4].sub)}</text>`;
   return { svg: `<svg viewBox="0 0 ${W} ${maxY + 6}" style="display:block;width:100%;height:auto" role="img" aria-label="Stoffstrom vom Rundholz zum fertigen Produkt mit den Nebenströmen je Produktionsschritt" font-size="12" fill="var(--muted)" font-family="inherit">${gb}${g}</svg>`, rows };
 }
 function panorama(K, out, cumA, eur, nq, unit){
@@ -981,7 +978,7 @@ function panorama(K, out, cumA, eur, nq, unit){
     ${sc(P_SAEGE, 205, 1.12)}${sc(P_TROCK, 400, 1.12)}${sc(P_HALLE, 622, 1.5)}${sc(P_HAUS, 760, 1.3)}
     ${TREE(790, 204, 46, '#2f7d4f')}
     ${PERSON(946, G + 14, '#2a78d6', '#5b4636', true)}${PERSON(974, G + 14, '#1baf7a', '#33383f', false)}
-    ${TRUCK(168, R, 'logs')}${TRUCK(560, R, 'boards')}${TRUCK(762, R, K[3] && /Tisch|Industrie|Holzindustrie/.test(K[3].sub) ? 'boards' : 'truss')}
+    ${TRUCK(168, R, 'logs')}${TRUCK(560, R, 'boards')}${TRUCK(762, R, K[3] && K[3].name !== 'KVH-Produktion' ? 'boards' : 'truss')}
     </g>${lab}</svg>`;
 }
 
@@ -1070,7 +1067,7 @@ function renderKette(){
       <tr><td><b>Gesamt</b></td><td colspan="2" style="white-space:nowrap">Erlös Nebenprodukte: <input type="number" min="0" step="1" value="${S.neben}" id="scmNeben" style="width:70px" aria-label="Erlös Nebenprodukte in Euro je Kubikmeter"> €/m³</td><td></td><td class="r">${eur(cTrans)}</td><td class="r"><b>${eur(ctot)}</b></td><td class="r"><b>${eur(ctot / S.menge)}</b></td></tr></tbody>`;
     $('cTable').querySelectorAll('[data-c]').forEach(inp => inp.onchange = () => { K[+inp.dataset.c][inp.dataset.f] = Math.max(0, +inp.value || 0); save(); render(); });
     $('scmNeben').onchange = () => { S.neben = Math.max(0, +$('scmNeben').value || 0); save(); render(); };
-    const prod = S.variante === 'tischlerei' ? 'Tisch' : S.variante === 'holzbau' ? 'Dachstuhl' : 'Holzprodukt';
+    const prod = S.variante === 'tischlerei' ? 'Möbel' : 'KVH im Haus';
     $('cNote').innerHTML = `Vom Rundholz (${eur(K[0].kost)} je fm) zum fertigen ${prod}: <b>${eur(ctot)}</b> für ${nq(S.menge)} m³, das sind <b>${eur(ctot / S.menge)} je m³</b>. Alle Kostensätze sind Beispielwerte ohne Gewinn, Gemeinkosten und Umsatzsteuer. Der Erlös für Nebenprodukte (Sägespäne, Hackgut) wird im Sägewerk abgezogen.`;
   }
 
@@ -1106,7 +1103,7 @@ $('kDate').onchange = () => { if ($('kDate').value){ state.scm.date = $('kDate')
 $('scmMenge').onchange = () => { state.scm.menge = Math.max(0.01, +$('scmMenge').value || 0.01); save(); render(); };
 $('scmVar').onchange = () => {
   const v = $('scmVar').value, x = SCM_VAR[v], K = state.scm.st; state.scm.variante = v;
-  Object.assign(K[3], { sub: x[1], tage: x[2], ausbeute: x[3], trans: x[4], kost: x[7], ktrans: x[8] }); Object.assign(K[4], { sub: x[5], tage: x[6], kost: x[9] }); state.scm.menge = x[10]; save(); render();
+  Object.assign(K[3], { name: x[11], sub: x[1], tage: x[2], ausbeute: x[3], trans: x[4], kost: x[7], ktrans: x[8] }); Object.assign(K[4], { sub: x[5], tage: x[6], kost: x[9] }); state.scm.menge = x[10]; save(); render();
 };
 
 /* ----- Einschnittplan ----- */
