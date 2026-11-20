@@ -10,9 +10,7 @@
 <link rel="icon" type="image/svg+xml" href="/logo.svg">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/manifest.webmanifest">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/fonts.css">
 <style>
 /* Aufbau: Kopf, Reiter (Disposition, Einschnittplan, Verkäufe, Lager & Zulauf, Stammdaten), Impressum */
 :root{
@@ -185,16 +183,29 @@ td.r{white-space:nowrap}
 }
 [hidden]{display:none!important}
 </style>
+<link rel="stylesheet" href="/rahmen.css">
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <img src="/logo.svg" alt="">
-    <div>
-      <h1>Croco</h1>
-      <p>Lieferantengeführtes Lager (VMI) für Konstruktionsvollholz – vom Verkauf zum Einschnitt</p>
+<a class="r-skip" href="#nav">Zum Inhalt</a>
+<header class="r-top">
+  <div class="r-wrap" style="--r-max:1180px">
+    <div class="r-brand"><img src="/logo.svg" alt="" width="44" height="44"><div><h1>Croco</h1><span class="r-sub">Lieferantengeführtes Lager (VMI) für Konstruktionsvollholz – vom Verkauf zum Einschnitt</span></div></div>
+    <div class="r-tools">
+      <button class="r-btn" type="button" id="r-help"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 1-1 1.7"/><path d="M12 17h.01"/></svg>So funktioniert’s</button>
+      <button class="r-btn r-pri" type="button" id="r-share"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 10.6l6.8-4.2"/><path d="M8.6 13.4l6.8 4.2"/></svg>Teilen</button>
     </div>
-  </header>
+  </div>
+</header>
+<div class="wrap">
+  <details class="r-box" id="hilfe" style="margin:0">
+    <summary>So funktioniert’s</summary>
+    <ol class="r-steps">
+      <li><span>„Beispiel“ und „Lieferkette“ zeigen, wie Material und Verkaufsdaten zwischen Sägewerk und Händler fließen.</span></li>
+      <li><span>Unter „Verkäufe“ einen Verkauf buchen. Er verringert den Lagerbestand und geht in die Bedarfsprognose ein.</span></li>
+      <li><span>„Disposition“ und „Einschnittplan“ schlagen vor, was als Nächstes eingeschnitten werden soll. „Beauftragen“ übernimmt den Einschnitt in den Zulauf.</span></li>
+      <li><span>Unter „Lager &amp; Zulauf“ ankommende Ware einlagern. Artikel und Beispieldaten lassen sich unter „Stammdaten“ ändern.</span></li>
+    </ol>
+  </details>
 
   <nav role="tablist" id="nav">
     <button role="tab" data-tab="beispiel">Beispiel</button>
@@ -382,17 +393,37 @@ td.r{white-space:nowrap}
     </div>
   </section>
 
-  <footer class="imp" id="impressum">
-    <h2>Impressum</h2>
-    <address>
-      Stefan Vötter<br>
-      AT-5431 Kuchl, Kellau 198<br>
-      E-Mail: <a href="mailto:stefan@voetter.net">stefan@voetter.net</a><br>
-      Telefon: <a href="tel:+436642431314">0664 2431314</a><br>
-      Web: <a href="https://voetter.info">voetter.info</a>
-    </address>
-  </footer>
+  <details class="r-box" id="teilen" style="margin:0">
+    <summary>Seite weitergeben</summary>
+    <div class="r-share">
+      <img src="/qr.svg" alt="QR-Code zur Adresse vmi.voetter.work" width="132" height="132">
+      <div>
+        <p>QR-Code scannen oder Link weitergeben. Der QR-Code steht auch auf dem Ausdruck.</p>
+        <button class="r-btn r-pri" type="button" id="r-sshare" hidden>Teilen</button>
+        <button class="r-btn" type="button" id="r-copy">Link kopieren</button>
+        <button class="r-btn" type="button" id="r-print">Drucken</button>
+        <p id="r-msg" role="status"></p>
+      </div>
+    </div>
+  </details>
 </div>
+
+<footer class="r-foot" style="margin-top:0">
+  <div class="r-wrap" style="--r-max:1180px">
+    <nav class="r-fnav" aria-label="Fußzeile">
+      <a href="#hilfe" id="r-fhelp">So funktioniert’s</a>
+      <a id="r-err" href="mailto:stefan@voetter.net?subject=Fehler%20melden%3A%20Croco%20%28vmi.voetter.work%29&amp;body=Seite%3A%20https%3A%2F%2Fvmi.voetter.work%2F%0A%0AWas%20stimmt%20nicht%3F%0A%0A%0AWie%20w%C3%A4re%20es%20richtig%3F%0A">Fehler melden</a>
+      <a href="/datenschutz.html">Datenschutz</a>
+      <a href="#impressum">Impressum</a>
+      <a class="r-more" href="https://book.voetter.work/">Weitere Projekte Voestify</a>
+    </nav>
+    <div class="r-printqr"><img src="/qr.svg" alt="" width="96" height="96"><span>vmi.voetter.work</span></div>
+    <address class="r-imp" id="impressum"><b>Impressum</b><br>Stefan Vötter<br>AT-5431 Kuchl, Kellau 198<br><a href="mailto:stefan@voetter.net">stefan@voetter.net</a><br><a href="tel:+436642431314">0664 2431314</a><br><a href="https://voetter.info">voetter.info</a></address>
+    <p>Private Seite.</p>
+    <p class="r-made">Seite erstellt von <a href="https://voetter.info">voestify</a></p>
+  </div>
+</footer>
+<script src="/rahmen.js"></script>
 
 <script id="logic">
 /* ---------- Rechenkern (ohne Seite verwendbar) ---------- */
