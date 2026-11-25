@@ -1,0 +1,10 @@
+# Schutz-Kopfzeilen für alle Seiten und Dateien (Cloudflare Workers, statische Dateien)
+# - nosniff: Dateien werden nur als das ausgeführt, was sie sind
+# - X-Frame-Options / frame-ancestors: die Seite darf nicht in fremde Seiten eingebettet werden
+# - Strict-Transport-Security: der Browser verwendet ein Jahr lang nur die verschlüsselte Verbindung
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Content-Security-Policy: frame-ancestors 'none'
+  Referrer-Policy: strict-origin-when-cross-origin
+  Strict-Transport-Security: max-age=31536000
